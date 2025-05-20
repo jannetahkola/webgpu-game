@@ -1,1 +1,1 @@
-[![Node.js CI](https://github.com/jannetahkola/webgpu-game/actions/workflows/node.js.yml/badge.svg)](https://github.com/jannetahkola/webgpu-game/actions/workflows/node.js.yml)
+[![Node.js CI](https://github.com/jannetahkola/webgpu-game/actions/workflows/node.js.yml/badge.svg)](https://github.com/jannetahkola/webgpu-game/actions/workflows/node.js.yml) ![Endpoint Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fgist.githubusercontent.com%2Fjannetahkola%2Fc143032e310b793540a6d52cc5f22cd7%2Fraw%2Fcoverage-badge.json)

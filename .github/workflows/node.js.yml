@@ -28,10 +28,25 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:coverage
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage
+      - name: Extract coverage percent
+        id: extract
+        run: |
+          PCT=$(jq '.total.lines.pct' coverage/coverage-summary.json)
+          COLOR=red
+          if (( $(echo "$PCT >= 80" | bc -l) )); then COLOR=green
+          elif (( $(echo "$PCT >= 60" | bc -l) )); then COLOR=yellow
+          fi
+          echo "pct=${PCT}" >> $GITHUB_OUTPUT
+          echo "color=${COLOR}" >> $GITHUB_OUTPUT
+      - name: Update Gist
+        run: |
+          JSON=$(jq -n \
+            --arg pct "${{ steps.extract.outputs.pct }}%" \
+            --arg color "${{ steps.extract.outputs.color }}" \
+            '{schemaVersion:1,label:"coverage",message:$pct,color:$color}')
+          curl -X PATCH "https://api.github.com/gists/c143032e310b793540a6d52cc5f22cd7" \
+            -H "Authorization: token ${{ secrets.GIST_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
       - run: npm run lint
       - run: npm run prettier
