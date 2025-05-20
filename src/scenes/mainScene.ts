@@ -25,7 +25,7 @@ export default class MainScene implements Scene {
     this.#gltfManager = gltfManager;
   }
 
-  update(dt: number) {
+  update(dt: number): void {
     this.#systems.forEach((system) => system.update(dt, this.em));
   }
 

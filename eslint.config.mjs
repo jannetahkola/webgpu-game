@@ -6,6 +6,9 @@ export default tseslint.config(
   eslint.configs.recommended,
   tseslint.configs.recommended,
   {
+    ignores: ['dist/**'],
+  },
+  {
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -14,7 +17,7 @@ export default tseslint.config(
           allowDefaultProject: [
             'eslint.config.mjs',
             'vite.config.ts',
-            'tests/*',
+            'tests/test-setup.ts',
           ],
         },
       },
