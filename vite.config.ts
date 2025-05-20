@@ -10,8 +10,9 @@ export default defineConfig({
     silent: 'passed-only',
     coverage: {
       provider: 'v8',
-      reporter: ['text'],
+      reporter: ['text', 'json-summary'],
       include: ['src/**/*.ts'],
+      reportOnFailure: true,
     },
   },
 });
