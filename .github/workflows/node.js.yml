@@ -38,7 +38,7 @@ jobs:
           fi
           echo "pct=${PCT}" >> $GITHUB_OUTPUT
           echo "color=${COLOR}" >> $GITHUB_OUTPUT
-      - name: Update Gist
+      - name: Update coverage Gist
         run: |
           JSON=$(jq -n \
             --arg pct "${{ steps.extract.outputs.pct }}%" \
@@ -53,3 +53,22 @@ jobs:
           '{files: {"coverage-badge.json": {content: $content}}}')"
       - run: npm run lint
       - run: npm run prettier
+      - name: Update CI Status Gist
+        if: always()
+        run: |
+          STATUS=passing
+          COLOR=green
+          if [ "${{ job.status }}" != "success" ]; then
+            STATUS=failing
+            COLOR=red
+          fi
+
+          JSON=$(jq -n \
+            --arg msg "$STATUS" \
+            --arg color "$COLOR" \
+            '{schemaVersion:1,label:"CI",message:$msg,color:$color}')
+
+          curl -X PATCH "https://api.github.com/gists/d6da14282ba971e06fef7bdc92f0b53f" \
+            -H "Authorization: token ${{ secrets.GIST_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg content "$JSON" '{files: {"ci-badge.json": {content: $content}}}')"
