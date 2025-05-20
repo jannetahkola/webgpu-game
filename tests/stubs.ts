@@ -45,6 +45,9 @@ const WebGPUStubs = {
         onSubmittedWorkDone: vi.fn(() => Promise.resolve()),
         writeBuffer: vi.fn(),
       },
+      limits: {
+        maxTextureDimension2D: 8192,
+      },
     } as unknown as GPUDevice;
 
     return { device, texture, buffer, pass, encoder };

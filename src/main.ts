@@ -49,7 +49,7 @@ async function main() {
   viewport.on(ViewportEvents.aspectScaleChange, onAspectScaleChange);
   viewport.on(ViewportEvents.resolutionChange, onResolutionChange);
 
-  viewport.observe();
+  viewport.observe(window);
   input.observe();
 
   Object.assign(window, {

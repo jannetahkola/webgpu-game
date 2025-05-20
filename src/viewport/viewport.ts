@@ -90,30 +90,32 @@ class Viewport {
     }
   }
 
-  observe() {
+  observe(window: Window) {
     if (this.#observer) return;
 
-    this.#observer = new ResizeObserver((entries: ResizeObserverEntry[]) => {
-      // https://webgpufundamentals.org/webgpu/lessons/webgpu-resizing-the-canvas.html
-      for (const entry of entries) {
-        const w = entry.devicePixelContentBoxSize[0].inlineSize;
-        const h = entry.devicePixelContentBoxSize[0].blockSize;
-        const canvas = entry.target as HTMLCanvasElement;
+    this.#observer = new window.ResizeObserver(
+      (entries: ResizeObserverEntry[]) => {
+        // https://webgpufundamentals.org/webgpu/lessons/webgpu-resizing-the-canvas.html
+        for (const entry of entries) {
+          const w = entry.devicePixelContentBoxSize[0].inlineSize;
+          const h = entry.devicePixelContentBoxSize[0].blockSize;
+          const canvas = entry.target as HTMLCanvasElement;
 
-        this.#observerEvent = () => {
-          canvas.width = Math.max(
-            1,
-            Math.min(w, this.#device.limits.maxTextureDimension2D)
-          );
-          canvas.height = Math.max(
-            1,
-            Math.min(h, this.#device.limits.maxTextureDimension2D)
-          );
+          this.#observerEvent = () => {
+            canvas.width = Math.max(
+              1,
+              Math.min(w, this.#device.limits.maxTextureDimension2D)
+            );
+            canvas.height = Math.max(
+              1,
+              Math.min(h, this.#device.limits.maxTextureDimension2D)
+            );
 
-          this.#updateAspectScale();
-        };
+            this.#updateAspectScale();
+          };
+        }
       }
-    });
+    );
 
     this.#observer.observe(this.getCanvas(), {
       box: 'device-pixel-content-box',

@@ -23,6 +23,10 @@ declare global {
   interface Navigator {
     userAgentData: UserAgentData;
   }
+
+  interface Window {
+    ResizeObserver: typeof ResizeObserver;
+  }
 }
 
 export {};
