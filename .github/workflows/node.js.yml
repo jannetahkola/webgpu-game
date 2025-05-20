@@ -44,17 +44,12 @@ jobs:
             --arg pct "${{ steps.extract.outputs.pct }}%" \
             --arg color "${{ steps.extract.outputs.color }}" \
             '{schemaVersion:1,label:"coverage",message:$pct,color:$color}')
+          
           curl -X PATCH "https://api.github.com/gists/c143032e310b793540a6d52cc5f22cd7" \
-            -H "Authorization: token ${{ secrets.GIST_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d @- <<EOF
-          {
-            "files": {
-              "coverage-badge.json": {
-                "content": "$JSON"
-              }
-            }
-          }
-          EOF
+          -H "Authorization: token ${{ secrets.GIST_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d "$(jq -n \
+          --arg content "$JSON" \
+          '{files: {"coverage-badge.json": {content: $content}}}')"
       - run: npm run lint
       - run: npm run prettier
