@@ -1,0 +1,39 @@
+import type System from './system';
+import type { EntityManager } from '../entities/entityManager.ts';
+import PlayerControllerComponent from '../components/playerControllerComponent.ts';
+import { Player } from '../entities/singletonEntityTag.ts';
+import { Actions, type GameInput } from '../../input/actions.ts';
+
+export default class InputSystem implements System {
+  readonly #input: GameInput;
+
+  constructor(input: GameInput) {
+    this.#input = input;
+  }
+
+  update(_dt: number, em: EntityManager): void {
+    const controller = em.getSingletonComponent(
+      Player,
+      PlayerControllerComponent
+    );
+
+    controller.lookDelta[0] = this.#input.getPointerDeltaX();
+    controller.lookDelta[1] = this.#input.getPointerDeltaY();
+
+    const input = this.#input;
+
+    controller.moveDir.fill(0);
+    if (input.isActive(Actions.moveForward)) {
+      controller.moveDir[2] += 1;
+    }
+    if (input.isActive(Actions.moveBackward)) {
+      controller.moveDir[2] += -1;
+    }
+    if (input.isActive(Actions.moveLeft)) {
+      controller.moveDir[0] += -1;
+    }
+    if (input.isActive(Actions.moveRight)) {
+      controller.moveDir[0] += 1;
+    }
+  }
+}

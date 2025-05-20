@@ -1,0 +1,8 @@
+Model Information:
+* title:	Rubik cube
+* source:	https://sketchfab.com/3d-models/rubik-cube-503af669cc9b41b284e97e0aaaca4d6d
+* author:	sifrani (https://sketchfab.com/sifrani)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works
