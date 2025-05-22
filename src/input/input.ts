@@ -1,5 +1,4 @@
 import { vec2, type Vec2 } from 'wgpu-matrix';
-import type { Viewport } from '../viewport/viewport.ts';
 
 type PointerState = {
   isLocked: boolean;
@@ -36,16 +35,19 @@ const suppressedKeys = [
 
 class Input<T extends string> {
   readonly #canvas: HTMLCanvasElement;
+  readonly #window: Window;
   readonly #pointer: PointerState = defaultPointerState();
   readonly #keys: Map<string, KeyState> = new Map(); // semi-dynamic -> map
   readonly #bindings: Record<T, string>; // keys are fixed -> record
   readonly #listeners = {
-    onpointerlockchange: () => {
+    onpointerlockchange: (_e: Event) => {
+      const document = this.#window.document;
+      // todo how to get this shit?
       this.#pointer.isLocked = document.pointerLockElement === this.#canvas;
       if (this.#pointer.isLocked) {
-        this.enableInput();
+        this.enableInput(document);
       } else {
-        this.disableInput();
+        this.disableInput(document);
       }
     },
     onpointerlockerror: (e: Event) => console.error('pointer lock error', e),
@@ -74,14 +76,16 @@ class Input<T extends string> {
   };
 
   constructor({
-    viewport,
+    canvas,
+    window,
     initialBindings,
   }: {
-    viewport: Viewport;
+    canvas: HTMLCanvasElement;
+    window: Window;
     initialBindings: Record<T, string>;
   }) {
-    // todo do we even need to change the canvas? if so, keep viewport reference
-    this.#canvas = viewport.getCanvas();
+    this.#canvas = canvas;
+    this.#window = window;
     this.#bindings = { ...initialBindings };
   }
 
@@ -106,24 +110,24 @@ class Input<T extends string> {
   }
 
   observe() {
-    document.addEventListener(
+    this.#window.document.addEventListener(
       'pointerlockchange',
       this.#listeners.onpointerlockchange
     );
-    document.addEventListener(
+    this.#window.document.addEventListener(
       'pointerlockerror',
       this.#listeners.onpointerlockerror
     );
     this.#canvas.addEventListener('click', this.#listeners.oncanvasclick);
   }
 
-  enableInput() {
+  enableInput(document: Document) {
     document.addEventListener('mousemove', this.#listeners.onmousemove);
     document.addEventListener('keydown', this.#listeners.onkeydown);
     document.addEventListener('keyup', this.#listeners.onkeyup);
   }
 
-  disableInput() {
+  disableInput(document: Document) {
     document.removeEventListener('mousemove', this.#listeners.onmousemove);
     document.removeEventListener('keydown', this.#listeners.onkeydown);
     document.removeEventListener('keyup', this.#listeners.onkeyup);

@@ -1,6 +1,5 @@
 import PlayerControllerSystem from './playerControllerSystem';
-import { EntityManager } from '../entities/entityManager.ts';
-import { Player } from '../entities/singletonEntityTag.ts';
+import { EntityManager, Player } from '../entities/entityManager.ts';
 import PlayerControllerComponent from '../components/playerControllerComponent.ts';
 import TransformComponent from '../components/transformComponent.ts';
 
@@ -10,7 +9,7 @@ describe('PlayerControllerSystem', () => {
     const em = new EntityManager();
     const controller = new PlayerControllerComponent();
     const transform = new TransformComponent();
-    em.createSingletonEntity(Player).addComponent(controller, transform);
+    em.newSingletonEntity(Player).addComponent(controller, transform);
 
     controller.lookDelta[1] = 1000;
     system.update(1, em);
@@ -28,7 +27,7 @@ describe('PlayerControllerSystem', () => {
     const em = new EntityManager();
     const controller = new PlayerControllerComponent();
     const transform = new TransformComponent();
-    em.createSingletonEntity(Player).addComponent(controller, transform);
+    em.newSingletonEntity(Player).addComponent(controller, transform);
 
     // look up and move forward
     controller.lookDelta[1] = 100;

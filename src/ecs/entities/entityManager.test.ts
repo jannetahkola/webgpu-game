@@ -1,5 +1,4 @@
-import { EntityManager } from './entityManager';
-import { Lighting, Player } from './singletonEntityTag.ts';
+import { EntityManager, Lighting, Player } from './entityManager';
 
 describe('EntityManager', () => {
   class TestComponent {}
@@ -8,22 +7,24 @@ describe('EntityManager', () => {
 
   it('creates entities', () => {
     const em = new EntityManager();
-    em.createEntity();
-    em.createEntity();
-    expect(em.getEntitiesSnapshot()).toEqual([0, 1]);
+    em.newEntity();
+    em.newEntity();
 
-    const r = em.createEntity();
+    expect(em.hasEntity(0)).toBe(true);
+    expect(em.hasEntity(1)).toBe(true);
+
+    const r = em.newEntity();
     expect(r.em).toBe(em);
     expect(r.entity).toBe(2);
   });
 
   it('creates singleton entities', () => {
     const em = new EntityManager();
-    const { entity } = em.createSingletonEntity(Player);
+    const { entity } = em.newSingletonEntity(Player);
 
     expect(em.getSingletonEntity(Player)).toBe(entity);
-    expect(() => em.createSingletonEntity(Player)).toThrowError(
-      'Singleton of type Player already exists'
+    expect(() => em.newSingletonEntity(Player)).toThrowError(
+      'Singleton Player already exists'
     );
   });
 
@@ -31,56 +32,58 @@ describe('EntityManager', () => {
     const em = new EntityManager();
     const c1 = new TestComponent();
     const c2 = new TestComponent();
-    const e1 = em.createEntity().addComponent(c1);
-    const e2 = em.createEntity().addComponent(c2);
+    const { entity: e1 } = em.newEntity().addComponent(c1);
+    const { entity: e2 } = em.newEntity().addComponent(c2);
 
     expect(em.getComponent(e1, TestComponent)).toBe(c1);
     expect(em.getComponent(e2, TestComponent)).toBe(c2);
     expect(em.getEntitiesWith([TestComponent])).toEqual([e1, e2]);
     expect(em.getEntitiesWith([TestComponent2])).toEqual([]);
     expect(em.getEntitiesWith([TestComponent, TestComponent2])).toEqual([]);
-
-    const snapshotSpy = vi.spyOn(em, 'getEntitiesSnapshot');
-
-    expect(em.getEntitiesWith()).toEqual([e1, e2]);
-    expect(snapshotSpy).toHaveBeenCalledOnce();
   });
 
   it('adds components and returns singleton entities with components', () => {
     const em = new EntityManager();
     const c1 = new TestComponent();
     const c2 = new TestComponent();
-    em.createSingletonEntity(Player).addComponent(c1);
-    em.createSingletonEntity(Lighting).addComponent(c2);
+    em.newSingletonEntity(Player).addComponent(c1);
+    em.newSingletonEntity(Lighting).addComponent(c2);
 
-    expect(em.getSingletonComponent(Player, TestComponent)).toBe(c1);
-    expect(em.getSingletonComponent(Lighting, TestComponent)).toBe(c2);
+    expect(
+      em.getComponentOpt(em.getSingletonEntity(Player), TestComponent)
+    ).toBe(c1);
+    expect(
+      em.getComponent(em.getSingletonEntity(Lighting), TestComponent)
+    ).toBe(c2);
   });
 
   it('throws if entity does not have component', () => {
     const em = new EntityManager();
 
     expect(() => em.getComponent(0, TestComponent)).toThrowError(
-      'Entity 0 does not have component TestComponent'
+      'No component TestComponent'
+    );
+
+    em.newEntity().addComponent(new TestComponent());
+
+    expect(() => em.getComponent(1, TestComponent)).toThrowError(
+      'No component TestComponent on entity 1'
     );
   });
 
   it('throws if singleton entity does not have component', () => {
     const em = new EntityManager();
-    em.createSingletonEntity(Player);
+    em.newSingletonEntity(Player);
 
-    expect(() => em.getSingletonComponent(Player, TestComponent)).toThrowError(
-      'Entity 0 does not have component TestComponent'
-    );
+    expect(() =>
+      em.getComponent(em.getSingletonEntity(Player), TestComponent)
+    ).toThrowError('No component TestComponent');
   });
 
   it('throws if singleton entity does not exist', () => {
     const em = new EntityManager();
     expect(() => em.getSingletonEntity(Player)).toThrowError(
-      'No singleton of type Player'
-    );
-    expect(() => em.getSingletonComponent(Player, TestComponent)).toThrowError(
-      'No singleton of type Player'
+      'No singleton Player, singletons: '
     );
   });
 });

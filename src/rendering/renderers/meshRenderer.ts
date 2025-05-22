@@ -1,11 +1,10 @@
-import { EntityQuery } from '../../ecs/entities/entityManager';
+import { EntityQuery, Player } from '../../ecs/entities/entityManager';
 import MeshComponent from '../../ecs/components/meshComponent.ts';
 import TransformComponent from '../../ecs/components/transformComponent.ts';
 import type { RenderContext } from './renderContext.ts';
 import MaterialComponent from '../../ecs/components/materialComponent.ts';
 import litPipeline from '../pipelines/litPipeline.ts';
 import CameraComponent from '../../ecs/components/cameraComponent.ts';
-import { Player } from '../../ecs/entities/singletonEntityTag.ts';
 
 export default class MeshRenderer {
   readonly #query = new EntityQuery([
@@ -37,7 +36,10 @@ export default class MeshRenderer {
 
     pass.setPipeline(pipeline);
 
-    const cameraComponent = em.getSingletonComponent(Player, CameraComponent);
+    const cameraComponent = em.getComponent(
+      em.getSingletonEntity(Player),
+      CameraComponent
+    );
 
     for (const e of this.#query.execute(em)) {
       const mesh = gltfManager.getMesh(em.getComponent(e, MeshComponent).mesh);

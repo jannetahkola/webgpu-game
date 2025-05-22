@@ -5,7 +5,9 @@ import MainRenderer from './rendering/renderers/mainRenderer.ts';
 import RendererFactory from './rendering/renderers/rendererFactory.ts';
 import { defaultBindings, GameInput } from './input/actions.ts';
 import { GltfManager } from './resources/gltf.ts';
-import MainScene from './scenes/mainScene.ts';
+import PrefabSceneLoader from './scenes/prefabSceneLoader.ts';
+import mainScenePrefab from './scenes/prefabs/mainScenePrefab.ts';
+import ComponentRegistry from './ecs/components/componentRegistry.ts';
 
 async function main() {
   const canvas = window.document.createElement('canvas');
@@ -18,10 +20,13 @@ async function main() {
   const viewport = new Viewport({ device, context, initialResolution });
 
   const initialBindings = defaultBindings();
-  const input = new GameInput({ viewport, initialBindings });
+  const input = new GameInput({
+    canvas: viewport.getCanvas(),
+    window,
+    initialBindings,
+  });
 
   const gltfManager = new GltfManager();
-  await gltfManager.loadGltf(device);
 
   const rendererFactory = new RendererFactory();
   const rendererOptions = { clearValue: [0.1, 0.1, 0.1, 1], multisampling: 4 };
@@ -33,8 +38,17 @@ async function main() {
     options: rendererOptions,
   });
 
-  const scene = new MainScene(gltfManager);
-  await scene.load(device, input);
+  ComponentRegistry.registerComponents(
+    import.meta.glob('./ecs/components/*Component.ts', {
+      eager: true,
+    })
+  );
+
+  const scene = await new PrefabSceneLoader(gltfManager).load(
+    device,
+    mainScenePrefab,
+    input
+  );
 
   const onAspectScaleChange = () => {
     console.log('aspect scale change', performance.now());

@@ -1,7 +1,6 @@
 import type System from './system';
-import type { EntityManager } from '../entities/entityManager.ts';
+import { type EntityManager, Player } from '../entities/entityManager.ts';
 import PlayerControllerComponent from '../components/playerControllerComponent.ts';
-import { Player } from '../entities/singletonEntityTag.ts';
 import { Actions, type GameInput } from '../../input/actions.ts';
 
 export default class InputSystem implements System {
@@ -12,8 +11,8 @@ export default class InputSystem implements System {
   }
 
   update(_dt: number, em: EntityManager): void {
-    const controller = em.getSingletonComponent(
-      Player,
+    const controller = em.getComponent(
+      em.getSingletonEntity(Player),
       PlayerControllerComponent
     );
 

@@ -1,10 +1,9 @@
 import CameraSystem from './cameraSystem';
 import { WebGPUStubs } from '../../../tests/stubs.ts';
-import { EntityManager } from '../entities/entityManager.ts';
-import { Player } from '../entities/singletonEntityTag.ts';
+import { EntityManager, Player } from '../entities/entityManager.ts';
 import CameraComponent from '../components/cameraComponent.ts';
 import TransformComponent from '../components/transformComponent.ts';
-import FirstPersonCamera from '../../cameras/first-person-camera.ts';
+import FirstPersonCamera from '../../cameras/firstPersonCamera.ts';
 
 describe('CameraSystem', () => {
   it('creates resources and updates camera', () => {
@@ -12,8 +11,11 @@ describe('CameraSystem', () => {
     const system = new CameraSystem(device);
     const em = new EntityManager();
     const camera = new FirstPersonCamera();
-    em.createSingletonEntity(Player).addComponent(
-      new CameraComponent(camera),
+    em.newSingletonEntity(Player).addComponent(
+      new CameraComponent({
+        cameraType: 'FirstPersonCamera',
+        camera,
+      }),
       new TransformComponent()
     );
 

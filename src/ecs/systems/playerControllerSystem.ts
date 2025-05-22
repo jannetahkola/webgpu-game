@@ -1,6 +1,5 @@
 import { quat, vec3 } from 'wgpu-matrix';
-import type { EntityManager } from '../entities/entityManager';
-import { Player } from '../entities/singletonEntityTag.ts';
+import { Player, type EntityManager } from '../entities/entityManager';
 import PlayerControllerComponent from '../components/playerControllerComponent.ts';
 import TransformComponent from '../components/transformComponent.ts';
 import type System from './system.ts';

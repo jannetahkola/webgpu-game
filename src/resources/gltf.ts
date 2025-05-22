@@ -6,9 +6,8 @@ import { WebIO } from '@gltf-transform/core';
 import { assertFloat32Array, assertUint32Array } from '../utils/asserts.ts';
 import { KHRMaterialsUnlit } from '@gltf-transform/extensions';
 
-// todo recursive
 const urls: Record<string, () => Promise<unknown>> = import.meta.glob(
-  './assets/gltf/*.glb',
+  './assets/gltf/**/*.glb',
   {
     query: '?url',
     import: 'default',
@@ -53,132 +52,151 @@ class GltfManager {
   }
 
   get(url: string) {
-    return this.#models[url];
+    const model = this.#models[url];
+    if (!model) throw new Error(`Model '${url}' not found`);
+    return model;
   }
 
   getMesh(ref: string) {
-    return this.#meshes[ref];
+    const mesh = this.#meshes[ref];
+    if (!mesh) throw new Error(`Mesh '${ref}' not found`);
+    return mesh;
   }
 
   getMaterial(ref: string) {
-    return this.#materials[ref];
+    const material = this.#materials[ref];
+    if (!material) throw new Error(`Material '${ref}' not found`);
+    return material;
   }
 
-  async loadGltf(device: GPUDevice) {
-    const url = (await urls['./assets/gltf/rubik_cube.glb']?.()) as string;
-    const doc = await this.#io.read(url);
+  async loadGltf(device: GPUDevice, refs: string[]) {
+    const promises = [];
 
-    const model: Model = { meshes: [], materials: [] };
-    const materials = new Map<string, Material>();
+    for (const ref of refs) {
+      if (!urls[ref]) throw new Error(`URL for ${ref} not found`);
 
-    for (const node of doc.getRoot().listNodes()) {
-      const mesh = node.getMesh();
-      if (mesh == null) continue;
+      promises.push(
+        (async () => {
+          const url = (await urls[ref]?.()) as string;
+          const doc = await this.#io.read(url);
 
-      for (const prim of mesh.listPrimitives()) {
-        const attrPos = prim.getAttribute('POSITION');
-        if (attrPos?.getArray() == null) continue;
+          const model: Model = { meshes: [], materials: [] };
+          const materials = new Map<string, Material>();
 
-        const attrUv = prim.getAttribute('TEXCOORD_0');
-        if (attrUv?.getArray() == null) continue;
+          for (const node of doc.getRoot().listNodes()) {
+            const mesh = node.getMesh();
+            if (mesh == null) continue;
 
-        const attrNormal = prim.getAttribute('NORMAL');
-        if (attrNormal?.getArray() == null) continue;
+            for (const prim of mesh.listPrimitives()) {
+              const attrPos = prim.getAttribute('POSITION');
+              if (attrPos?.getArray() == null) continue;
 
-        const indices = prim.getIndices();
-        if (indices?.getArray() == null) continue;
+              const attrUv = prim.getAttribute('TEXCOORD_0');
+              if (attrUv?.getArray() == null) continue;
 
-        const material = prim.getMaterial();
-        if (material === null) continue;
+              const attrNormal = prim.getAttribute('NORMAL');
+              if (attrNormal?.getArray() == null) continue;
 
-        const vertexArray = assertFloat32Array(attrPos.getArray());
-        const vertexBuffer = device.createBuffer({
-          label: 'mesh vertex buffer', // todo better labels
-          size: vertexArray.byteLength,
-          usage: GPUBufferUsage.VERTEX,
-          mappedAtCreation: true,
-        });
-        new Float32Array(vertexBuffer.getMappedRange()).set(vertexArray);
-        vertexBuffer.unmap();
+              const indices = prim.getIndices();
+              if (indices?.getArray() == null) continue;
 
-        const uvArray = assertFloat32Array(attrUv.getArray());
-        const uvBuffer = device.createBuffer({
-          label: 'mesh uv buffer',
-          size: uvArray.byteLength,
-          usage: GPUBufferUsage.VERTEX,
-          mappedAtCreation: true,
-        });
-        new Float32Array(uvBuffer.getMappedRange()).set(uvArray);
-        uvBuffer.unmap();
+              const material = prim.getMaterial();
+              if (material === null) continue;
 
-        const normalArray = assertFloat32Array(attrNormal.getArray());
-        const normalBuffer = device.createBuffer({
-          label: 'mesh normal buffer',
-          size: normalArray.byteLength,
-          usage: GPUBufferUsage.VERTEX,
-          mappedAtCreation: true,
-        });
-        new Float32Array(normalBuffer.getMappedRange()).set(normalArray);
-        normalBuffer.unmap();
+              const vertexArray = assertFloat32Array(attrPos.getArray());
+              const vertexBuffer = device.createBuffer({
+                label: 'mesh vertex buffer', // todo better labels
+                size: vertexArray.byteLength,
+                usage: GPUBufferUsage.VERTEX,
+                mappedAtCreation: true,
+              });
+              new Float32Array(vertexBuffer.getMappedRange()).set(vertexArray);
+              vertexBuffer.unmap();
 
-        const indexArray = assertUint32Array(indices.getArray());
-        const indexCount = indexArray.length;
-        const indexBuffer = device.createBuffer({
-          label: 'mesh index buffer',
-          size: indexArray.byteLength,
-          usage: GPUBufferUsage.INDEX,
-          mappedAtCreation: true,
-        });
-        new Uint32Array(indexBuffer.getMappedRange()).set(indexArray);
-        indexBuffer.unmap();
+              const uvArray = assertFloat32Array(attrUv.getArray());
+              const uvBuffer = device.createBuffer({
+                label: 'mesh uv buffer',
+                size: uvArray.byteLength,
+                usage: GPUBufferUsage.VERTEX,
+                mappedAtCreation: true,
+              });
+              new Float32Array(uvBuffer.getMappedRange()).set(uvArray);
+              uvBuffer.unmap();
 
-        const ref = `${url}#${node.getName()}:${prim.getName()}`;
-        const materialRef = `${url}#${material.getName()}:`;
-        if (!materials.has(materialRef)) {
-          const texture = await this.#loadTexture(device, material);
-          const unlit = material.getExtension('KHR_materials_unlit') != null;
-          const bufferArray = new Float32Array(4);
-          bufferArray.set(material.getBaseColorFactor());
-          const buffer = device.createBuffer({
-            label: 'material buffer',
-            size: 16,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            mappedAtCreation: true,
-          });
-          new Float32Array(buffer.getMappedRange()).set(bufferArray);
-          buffer.unmap();
+              const normalArray = assertFloat32Array(attrNormal.getArray());
+              const normalBuffer = device.createBuffer({
+                label: 'mesh normal buffer',
+                size: normalArray.byteLength,
+                usage: GPUBufferUsage.VERTEX,
+                mappedAtCreation: true,
+              });
+              new Float32Array(normalBuffer.getMappedRange()).set(normalArray);
+              normalBuffer.unmap();
 
-          const mat: Material = {
-            texture,
-            buffer,
-            unlit,
-          };
+              const indexArray = assertUint32Array(indices.getArray());
+              const indexCount = indexArray.length;
+              const indexBuffer = device.createBuffer({
+                label: 'mesh index buffer',
+                size: indexArray.byteLength,
+                usage: GPUBufferUsage.INDEX,
+                mappedAtCreation: true,
+              });
+              new Uint32Array(indexBuffer.getMappedRange()).set(indexArray);
+              indexBuffer.unmap();
 
-          materials.set(materialRef, mat);
-          model.materials.push(mat);
-          this.#materials[materialRef] = mat;
-        }
+              const ref = `${url}#${node.getName()}:${prim.getName()}`;
+              const materialRef = `${url}#${material.getName()}`;
+              if (!materials.has(materialRef)) {
+                const texture = await this.#loadTexture(device, material);
+                const unlit =
+                  material.getExtension('KHR_materials_unlit') != null;
+                const bufferArray = new Float32Array(4);
+                bufferArray.set(material.getBaseColorFactor());
+                const buffer = device.createBuffer({
+                  label: 'material buffer',
+                  size: 16,
+                  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                  mappedAtCreation: true,
+                });
+                new Float32Array(buffer.getMappedRange()).set(bufferArray);
+                buffer.unmap();
 
-        const mesh: Mesh = {
-          vertexArray,
-          vertexBuffer,
-          indexArray,
-          indexBuffer,
-          indexCount,
-          uvArray,
-          uvBuffer,
-          normalArray,
-          normalBuffer,
-          materialRef,
-          ref,
-        };
+                const mat: Material = {
+                  texture,
+                  buffer,
+                  unlit,
+                };
 
-        model.meshes.push(mesh);
-        this.#meshes[ref] = mesh;
-      }
+                materials.set(materialRef, mat);
+                model.materials.push(mat);
+                this.#materials[materialRef] = mat;
+              }
+
+              const mesh: Mesh = {
+                vertexArray,
+                vertexBuffer,
+                indexArray,
+                indexBuffer,
+                indexCount,
+                uvArray,
+                uvBuffer,
+                normalArray,
+                normalBuffer,
+                materialRef,
+                ref,
+              };
+
+              model.meshes.push(mesh);
+              this.#meshes[ref] = mesh;
+            }
+          }
+
+          this.#models[ref] = model;
+        })()
+      );
     }
 
-    this.#models['./assets/gltf/rubik_cube.glb'] = model;
+    await Promise.all(promises);
   }
 
   async #loadTexture(device: GPUDevice, material: GltfMaterial) {

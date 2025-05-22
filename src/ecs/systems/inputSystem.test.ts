@@ -1,7 +1,6 @@
 import InputSystem from './inputSystem';
 import { Actions, type GameInput } from '../../input/actions.ts';
-import { EntityManager } from '../entities/entityManager.ts';
-import { Player } from '../entities/singletonEntityTag.ts';
+import { EntityManager, Player } from '../entities/entityManager.ts';
 import PlayerControllerComponent from '../components/playerControllerComponent.ts';
 
 describe('InputSystem', () => {
@@ -14,7 +13,7 @@ describe('InputSystem', () => {
     const system = new InputSystem(input);
     const em = new EntityManager();
     const controller = new PlayerControllerComponent();
-    em.createSingletonEntity(Player).addComponent(controller);
+    em.newSingletonEntity(Player).addComponent(controller);
 
     vi.spyOn(input, 'getPointerDeltaX').mockReturnValue(1);
     vi.spyOn(input, 'getPointerDeltaY').mockReturnValue(2);

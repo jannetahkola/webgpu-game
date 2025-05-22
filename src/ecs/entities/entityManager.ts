@@ -1,135 +1,176 @@
-import { type SingletonEntityTagConstructor } from './singletonEntityTag.ts';
+import ComponentRegistry from '../components/componentRegistry';
 
-type ComponentConstructor<T extends object = object> = new (
-  ...args: never[]
-) => T;
+type Instance<I> = I extends new (...args: never[]) => object ? never : I;
+type Class<C> = C extends new (...args: never[]) => object ? C : never;
+type Constructor<I = object, A extends unknown[] = unknown[]> = new (
+  ...args: A
+) => I;
+type SingletonConstructor<T extends SingletonEntity = SingletonEntity> =
+  abstract new () => T & {
+    readonly __tag: string;
+  };
 
-class EntityQuery {
-  readonly #components: ComponentConstructor[];
+abstract class SingletonEntity {
+  protected __abstractBrand!: void;
+}
 
-  constructor(components: ComponentConstructor[]) {
-    this.#components = components;
+abstract class Player extends SingletonEntity {
+  readonly __tag = 'Player';
+}
+
+abstract class Lighting extends SingletonEntity {
+  readonly __tag = 'Lighting';
+}
+
+class EntityQuery<C extends object> {
+  readonly #componentClasses: Class<C>[];
+
+  constructor(componentClasses: Class<C>[]) {
+    this.#componentClasses = componentClasses;
   }
 
   execute(em: EntityManager): number[] {
-    return em.getEntitiesWith(this.#components);
+    return em.getEntitiesWith(this.#componentClasses);
   }
 }
 
+type EntityManagerSnapshot = {
+  next: number;
+  entities: number[];
+  singletonEntities: { tag: string; entity: number }[];
+  components: { entity: number; type: string; data: object }[];
+};
+
 class EntityManager {
   readonly #entities: number[] = [];
-  readonly #components: Map<ComponentConstructor, Map<number, object>> =
-    new Map();
-  readonly #singletons: Map<ComponentConstructor, number> = new Map();
+  readonly #components: Map<object, Map<number, object>> = new Map();
+  readonly #singletons: Map<object, number> = new Map();
+  #next = 0;
 
-  #nextEntity = 0;
-
-  createEntity() {
-    const entity = this.#nextEntity++;
-    this.#entities.push(entity);
+  newEntity() {
+    const e = this.#next++;
+    this.#entities.push(e);
     return {
-      entity,
+      entity: e,
       em: this,
-      addComponent(...components: object[]) {
-        components.forEach((component) =>
-          this.em.addComponent(this.entity, component)
+      addComponent<T extends object[]>(
+        ...componentInstances: { [K in keyof T]: Instance<T[K]> }
+      ) {
+        componentInstances.forEach((componentInstance) =>
+          this.em.addComponent(this.entity, componentInstance)
         );
-        return entity;
+        return this;
       },
     };
   }
 
-  createSingletonEntity(tag: ComponentConstructor) {
-    if (this.#singletons.has(tag)) {
-      throw new Error('Singleton of type ' + tag.name + ' already exists');
-    }
-
-    const entity = this.#nextEntity++;
-    this.#entities.push(entity);
-
-    this.#singletons.set(tag, entity);
-    console.log('created singleton', tag, entity);
-
+  newSingletonEntity<T extends SingletonEntity>(
+    singleton: SingletonConstructor<T>
+  ) {
+    if (this.#singletons.has(singleton))
+      throw new Error('Singleton ' + singleton.name + ' already exists');
+    const e = this.#next++;
+    this.#entities.push(e);
+    this.#singletons.set(singleton, e);
     return {
-      entity,
+      entity: e,
       em: this,
-      addComponent(...components: object[]) {
-        components.forEach((component) => {
-          this.em.addComponent(this.entity, component);
-        });
+      addComponent<T extends object[]>(
+        ...componentInstances: { [K in keyof T]: Instance<T[K]> }
+      ) {
+        componentInstances.forEach((componentInstance) =>
+          this.em.addComponent(this.entity, componentInstance)
+        );
+        return this;
       },
     };
   }
 
-  addComponent(entity: number, component: object) {
-    const componentClass = component.constructor as ComponentConstructor;
-    if (!this.#components.has(componentClass)) {
-      this.#components.set(componentClass, new Map());
-    }
-    this.#components.get(componentClass)?.set(entity, component);
-    console.log(
-      'added component ' + componentClass.name + ' to entity ' + entity + ''
-    );
-    return this;
+  hasEntity(entity: number) {
+    return this.#entities.includes(entity);
   }
 
-  addSingletonComponent(tag: SingletonEntityTagConstructor, component: object) {
-    const entity = this.getSingletonEntity(tag);
-    this.addComponent(entity, component);
-    return this;
-  }
-
-  getComponent<T extends object>(
+  addComponent<I extends object>(
     entity: number,
-    componentClass: ComponentConstructor<T>
-  ): T {
-    const component = this.#components.get(componentClass)?.get(entity);
-    if (!component) {
+    componentInstance: Instance<I>
+  ) {
+    const componentClass = componentInstance.constructor;
+    const map = this.#components.get(componentClass);
+    if (!map) this.#components.set(componentClass, new Map());
+    this.#components.get(componentClass)!.set(entity, componentInstance);
+  }
+
+  getComponent<I extends object, A extends unknown[]>(
+    entity: number,
+    componentConstructor: Constructor<I, A>
+  ) {
+    const map = this.#components.get(componentConstructor);
+    if (!map) throw new Error('No component ' + componentConstructor.name);
+    const component = map.get(entity);
+    if (!component)
       throw new Error(
-        'Entity ' + entity + ' does not have component ' + componentClass.name
+        'No component ' + componentConstructor.name + ' on entity ' + entity
       );
-    }
-    return component as T;
+    return component as I;
   }
 
-  getComponentOpt<T extends object>(
+  getComponentOpt<I extends object, A extends unknown[]>(
     entity: number,
-    componentClass: ComponentConstructor<T>
-  ): T | undefined {
-    const component = this.#components.get(componentClass)?.get(entity);
-    return component as T | undefined;
+    componentConstructor: Constructor<I, A>
+  ) {
+    return this.#components.get(componentConstructor)?.get(entity) as
+      | I
+      | undefined;
   }
 
-  getEntitiesSnapshot() {
-    return this.#entities.slice();
-  }
-
-  getEntitiesWith(componentClasses?: ComponentConstructor[]): number[] {
-    if (!componentClasses || componentClasses.length === 0) {
-      return this.getEntitiesSnapshot();
-    }
+  getEntitiesWith<C extends object>(componentClasses: Class<C>[]) {
     return this.#entities.filter((entity) =>
       componentClasses.every(
-        (component) => this.#components.get(component)?.has(entity) ?? false
+        (componentClass) =>
+          this.#components.get(componentClass)?.has(entity) ?? false
       )
     );
   }
 
-  getSingletonEntity(tag: SingletonEntityTagConstructor) {
-    const entity = this.#singletons.get(tag);
-    if (entity == null) {
-      throw new Error('No singleton of type ' + tag.name);
-    }
+  getSingletonEntity<T extends SingletonEntity>(
+    singleton: SingletonConstructor<T>
+  ) {
+    const entity = this.#singletons.get(singleton);
+    if (entity == null)
+      throw new Error(
+        'No singleton ' +
+          singleton.name +
+          ', singletons: ' +
+          Object.keys(this.#singletons)
+      );
     return entity;
   }
 
-  getSingletonComponent<T extends object>(
-    tag: SingletonEntityTagConstructor,
-    componentClass: ComponentConstructor<T>
-  ): T {
-    const entity = this.getSingletonEntity(tag);
-    return this.getComponent(entity, componentClass);
+  deserialize(snapshot: EntityManagerSnapshot) {
+    this.#next = snapshot.next;
+    for (const id of snapshot.entities) {
+      this.#entities.push(id);
+    }
+
+    for (const obj of snapshot.singletonEntities) {
+      this.#entities.push(obj.entity);
+      let ctor: SingletonConstructor;
+      if (obj.tag === 'Player') ctor = Player;
+      else
+        throw new Error(
+          'Unknown singleton tag ' + obj.tag + ' in entity ' + obj.entity + ''
+        );
+      this.#singletons.set(ctor, obj.entity);
+    }
+
+    for (const { entity, type, data: componentData } of snapshot.components) {
+      const Component = ComponentRegistry.get(type);
+      if (!Component) throw new Error('Unknown component type ' + type);
+      const component = new Component(componentData);
+      this.addComponent(entity, component);
+    }
   }
 }
 
-export { EntityQuery, EntityManager };
+export type { EntityManagerSnapshot, Constructor }; // todo do not export Constructor, or rename to ComponentConstructor
+export { EntityQuery, EntityManager, Player, Lighting };

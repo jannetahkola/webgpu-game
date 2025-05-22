@@ -2,6 +2,7 @@ import type System from './system.ts';
 import { type EntityManager, EntityQuery } from '../entities/entityManager.ts';
 import TransformComponent from '../components/transformComponent.ts';
 import { mat4 } from 'wgpu-matrix';
+import ParentComponent from '../components/parentComponent.ts';
 
 export default class TransformSystem implements System {
   readonly #query = new EntityQuery([TransformComponent]);
@@ -18,11 +19,21 @@ export default class TransformSystem implements System {
 
       if (!component.dirty) continue;
 
-      mat4.identity(component.modelMat);
-      mat4.translate(transform.position, component.modelMat);
+      const modelMatrix = component.modelMat;
+
+      // T * R * S
+      mat4.identity(modelMatrix);
+      mat4.translate(modelMatrix, transform.position, modelMatrix);
       mat4.fromQuat(transform.rotation, component.rotationMat);
-      mat4.multiply(component.rotationMat, component.modelMat);
-      mat4.scale(transform.scale, component.modelMat);
+      mat4.multiply(modelMatrix, component.rotationMat, modelMatrix);
+      mat4.scale(modelMatrix, transform.scale, modelMatrix);
+
+      const parent = em.getComponentOpt(e, ParentComponent)?.parent;
+      if (parent != null) {
+        // todo test 0 works
+        const parentComponent = em.getComponent(parent, TransformComponent);
+        mat4.multiply(modelMatrix, parentComponent.modelMat, modelMatrix);
+      }
 
       component.modelBuffer ??= this.#device.createBuffer({
         size: 64,

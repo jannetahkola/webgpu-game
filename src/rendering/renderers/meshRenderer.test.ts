@@ -1,10 +1,9 @@
 import MeshRenderer from './meshRenderer';
 import type { RenderContext } from './renderContext.ts';
 import { WebGPUStubs } from '../../../tests/stubs.ts';
-import { EntityManager } from '../../ecs/entities/entityManager.ts';
-import { Player } from '../../ecs/entities/singletonEntityTag.ts';
+import { EntityManager, Player } from '../../ecs/entities/entityManager.ts';
 import CameraComponent from '../../ecs/components/cameraComponent.ts';
-import FirstPersonCamera from '../../cameras/first-person-camera.ts';
+import FirstPersonCamera from '../../cameras/firstPersonCamera.ts';
 import MeshComponent from '../../ecs/components/meshComponent.ts';
 import MaterialComponent from '../../ecs/components/materialComponent.ts';
 import TransformComponent from '../../ecs/components/transformComponent.ts';
@@ -14,11 +13,14 @@ describe('MeshRenderer', () => {
   it('creates resources and draws', () => {
     const em = new EntityManager();
 
-    const cameraComponent = new CameraComponent(new FirstPersonCamera());
-    em.createSingletonEntity(Player).addComponent(cameraComponent);
+    const cameraComponent = new CameraComponent({
+      cameraType: 'FirstPersonCamera',
+      camera: new FirstPersonCamera(),
+    });
+    em.newSingletonEntity(Player).addComponent(cameraComponent);
 
     const transformComponent = new TransformComponent();
-    em.createEntity().addComponent(
+    em.newEntity().addComponent(
       new MeshComponent(''),
       new MaterialComponent(''),
       transformComponent

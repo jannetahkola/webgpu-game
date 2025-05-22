@@ -6,6 +6,8 @@ const WebGPUStubs = {
     } as unknown as GPUTexture;
 
     const buffer = {
+      getMappedRange: vi.fn(() => new ArrayBuffer(64)),
+      unmap: vi.fn(),
       destroy: vi.fn(),
     } as unknown as GPUBuffer;
 
@@ -44,6 +46,7 @@ const WebGPUStubs = {
         submit: vi.fn(),
         onSubmittedWorkDone: vi.fn(() => Promise.resolve()),
         writeBuffer: vi.fn(),
+        writeTexture: vi.fn(),
       },
       limits: {
         maxTextureDimension2D: 8192,
