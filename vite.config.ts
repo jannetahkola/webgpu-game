@@ -5,7 +5,10 @@ export default defineConfig({
     target: 'es2023',
   },
   test: {
-    setupFiles: ['./tests/test-setup.ts'],
+    setupFiles: [
+      './tests/webgpu-setup.ts',
+      './tests/vitest-extensions-setup.ts',
+    ],
     globals: true,
     silent: 'passed-only',
     coverage: {

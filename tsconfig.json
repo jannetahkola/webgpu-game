@@ -20,5 +20,5 @@
     "noUncheckedSideEffectImports": true,
     "types": ["@webgpu/types", "vitest/globals"]
   },
-  "include": ["src"]
+  "include": ["src", "tests/vitest-extensions.d.ts"]
 }

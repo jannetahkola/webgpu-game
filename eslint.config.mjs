@@ -17,7 +17,8 @@ export default tseslint.config(
           allowDefaultProject: [
             'eslint.config.mjs',
             'vite.config.ts',
-            'tests/test-setup.ts',
+            'tests/webgpu-setup.ts',
+            'tests/vitest-extensions-setup.ts',
           ],
         },
       },
