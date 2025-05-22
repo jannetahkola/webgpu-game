@@ -33,7 +33,7 @@ jobs:
         run: |
           PCT=$(jq '.total.lines.pct' coverage/coverage-summary.json)
           COLOR=red
-          if (( $(echo "$PCT >= 80" | bc -l) )); then COLOR=green
+          if (( $(echo "$PCT >= 80" | bc -l) )); then COLOR=success
           elif (( $(echo "$PCT >= 60" | bc -l) )); then COLOR=yellow
           fi
           echo "pct=${PCT}" >> $GITHUB_OUTPUT
@@ -57,7 +57,7 @@ jobs:
         if: always()
         run: |
           STATUS=passing
-          COLOR=green
+          COLOR=success
           if [ "${{ job.status }}" != "success" ]; then
             STATUS=failing
             COLOR=red
