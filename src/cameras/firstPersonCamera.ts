@@ -4,7 +4,7 @@ import type { Transform } from '../rendering/transform.ts';
 
 export default class FirstPersonCamera implements Camera {
   readonly #viewMat = mat4.identity();
-  readonly #projMat = mat4.perspective(Math.PI / 2, 16 / 9, 0.1, 10);
+  readonly #projMat = mat4.perspective(Math.PI / 2, 16 / 9, 0.1, 100); // todo load from somewhere
   readonly #viewProjMat = mat4.identity();
   readonly #lookDir = vec3.fromValues(0, 0, -1);
   readonly #target = vec3.create();

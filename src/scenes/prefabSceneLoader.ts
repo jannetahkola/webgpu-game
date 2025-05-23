@@ -4,7 +4,6 @@ import ModelComponent from '../ecs/components/modelComponent.ts';
 import type { GltfManager } from '../resources/gltf.ts';
 import ChildComponent from '../ecs/components/childComponent.ts';
 import TransformComponent from '../ecs/components/transformComponent.ts';
-import { vec3 } from 'wgpu-matrix';
 import MeshComponent from '../ecs/components/meshComponent.ts';
 import MaterialComponent from '../ecs/components/materialComponent.ts';
 import ParentComponent from '../ecs/components/parentComponent.ts';
@@ -15,6 +14,7 @@ import CameraSystem from '../ecs/systems/cameraSystem.ts';
 import type { GameInput } from '../input/actions.ts';
 import CameraComponent from '../ecs/components/cameraComponent.ts';
 import FirstPersonCamera from '../cameras/firstPersonCamera.ts';
+import LightingSystem from '../ecs/systems/lightingSystem.ts';
 
 export default class PrefabSceneLoader {
   readonly #gltfManager: GltfManager;
@@ -39,7 +39,8 @@ export default class PrefabSceneLoader {
       new InputSystem(input),
       new PlayerControllerSystem(),
       new TransformSystem(device),
-      new CameraSystem(device)
+      new CameraSystem(device),
+      new LightingSystem(device)
     );
 
     return scene;
@@ -56,13 +57,7 @@ export default class PrefabSceneLoader {
   #initModels(scene: Scene) {
     for (const e of scene.em.getEntitiesWith([ModelComponent])) {
       const modelComponent = scene.em.getComponent(e, ModelComponent);
-      const { entity: parentEntity } = scene.em.newEntity().addComponent(
-        new ChildComponent(),
-        new TransformComponent({
-          transform: { position: vec3.fromValues(0, 0, -2) },
-        }),
-        modelComponent
-      );
+      scene.em.addComponent(e, new ChildComponent());
 
       this.#gltfManager.get(modelComponent.ref).meshes.forEach((mesh) => {
         const { entity: childEntity } = scene.em
@@ -71,11 +66,9 @@ export default class PrefabSceneLoader {
             new MeshComponent(mesh.ref),
             new MaterialComponent(mesh.materialRef),
             new TransformComponent(),
-            new ParentComponent({ parent: parentEntity })
+            new ParentComponent({ parent: e })
           );
-        scene.em
-          .getComponent(parentEntity, ChildComponent)
-          .children.push(childEntity);
+        scene.em.getComponent(e, ChildComponent).children.push(childEntity);
       });
     }
   }

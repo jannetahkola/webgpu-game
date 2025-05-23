@@ -17,6 +17,9 @@ export default class ComponentRegistry {
   }
 
   static registerComponents(modules: Record<string, unknown>) {
+    this.#registry.clear();
+    console.log('registry cleared');
+
     for (const path in modules) {
       const module = modules[path] as Record<string, unknown>;
       for (const [_, value] of Object.entries(module)) {

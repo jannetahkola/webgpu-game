@@ -3,7 +3,7 @@ import type {
   Texture as GltfTexture,
 } from '@gltf-transform/core';
 import { WebIO } from '@gltf-transform/core';
-import { assertFloat32Array, assertUint32Array } from '../utils/asserts.ts';
+import { assertFloat32Array, assertUint16Array } from '../utils/asserts.ts';
 import { KHRMaterialsUnlit } from '@gltf-transform/extensions';
 
 const urls: Record<string, () => Promise<unknown>> = import.meta.glob(
@@ -22,7 +22,7 @@ type Model = {
 type Mesh = {
   vertexArray: Float32Array;
   vertexBuffer: GPUBuffer;
-  indexArray: Uint32Array;
+  indexArray: Uint16Array;
   indexBuffer: GPUBuffer;
   indexCount: number;
   uvArray: Float32Array;
@@ -133,7 +133,8 @@ class GltfManager {
               new Float32Array(normalBuffer.getMappedRange()).set(normalArray);
               normalBuffer.unmap();
 
-              const indexArray = assertUint32Array(indices.getArray());
+              // support uint16 only for now, not expecting large models
+              const indexArray = assertUint16Array(indices.getArray());
               const indexCount = indexArray.length;
               const indexBuffer = device.createBuffer({
                 label: 'mesh index buffer',
@@ -141,7 +142,7 @@ class GltfManager {
                 usage: GPUBufferUsage.INDEX,
                 mappedAtCreation: true,
               });
-              new Uint32Array(indexBuffer.getMappedRange()).set(indexArray);
+              new Uint16Array(indexBuffer.getMappedRange()).set(indexArray);
               indexBuffer.unmap();
 
               const ref = `${url}#${node.getName()}:${prim.getName()}`;
@@ -209,7 +210,7 @@ class GltfManager {
       return this.#textureCache.get(baseColorTexture)!;
     }
 
-    const blob = new Blob([baseColorTexture.getImage() as Uint8Array], {
+    const blob = new Blob([baseColorTexture.getImage()!], {
       type: baseColorTexture.getMimeType(),
     });
     const bitmap = await createImageBitmap(blob);

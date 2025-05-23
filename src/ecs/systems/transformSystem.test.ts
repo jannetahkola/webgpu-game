@@ -44,7 +44,15 @@ describe('TransformSystem', () => {
     system.update(0, em);
     system.update(1, em);
 
-    expect(device.createBuffer).toHaveBeenCalledTimes(2);
+    expect(device.createBuffer).toHaveBeenCalledTimes(4); // 2 x model, 2 x normal
+    expect(device.queue.writeBuffer).toHaveBeenCalledTimes(4);
+
+    const parentTransformComponent = em.getComponent(
+      parent,
+      TransformComponent
+    );
+
+    expect(parentTransformComponent.dirty).toBe(false);
 
     {
       const transformComponent = em.getComponent(parent, TransformComponent);
@@ -53,14 +61,16 @@ describe('TransformSystem', () => {
       );
     }
     {
-      const parentTransformComponent = em.getComponent(
-        parent,
-        TransformComponent
-      );
       const transformComponent = em.getComponent(child, TransformComponent);
       expect(transformComponent.modelMat).toBeFloat32ArrayCloseTo(
         computeTRSMatrix(parentTransformComponent.transform)
       );
     }
+
+    parentTransformComponent.dirty = true;
+    system.update(2, em);
+
+    expect(parentTransformComponent.dirty).toBe(false);
+    expect(device.queue.writeBuffer).toHaveBeenCalledTimes(6);
   });
 });

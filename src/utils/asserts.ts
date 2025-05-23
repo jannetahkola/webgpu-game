@@ -7,11 +7,18 @@ function assertFloat32Array(array: TypedArray | null): Float32Array {
   return array;
 }
 
-function assertUint32Array(array: TypedArray | null): Uint32Array {
-  if (!(array instanceof Uint32Array)) {
-    throw new Error('array is not Uint32Array: ' + array?.constructor.name);
+function assertUint16Array(array: TypedArray | null): Uint16Array {
+  if (
+    !(array instanceof Uint8Array) &&
+    !(array instanceof Uint16Array) &&
+    !(array instanceof Uint32Array)
+  ) {
+    throw new Error('array is not uint: ' + array?.constructor.name);
   }
-  return array;
+  if (Math.max(...array) > 65535) {
+    throw new Error('array exceeds uint16 range');
+  }
+  return array as Uint16Array;
 }
 
-export { assertFloat32Array, assertUint32Array };
+export { assertFloat32Array, assertUint16Array };

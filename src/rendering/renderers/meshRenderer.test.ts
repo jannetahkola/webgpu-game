@@ -1,13 +1,18 @@
 import MeshRenderer from './meshRenderer';
 import type { RenderContext } from './renderContext.ts';
 import { WebGPUStubs } from '../../../tests/stubs.ts';
-import { EntityManager, Player } from '../../ecs/entities/entityManager.ts';
+import {
+  EntityManager,
+  Lighting,
+  Player,
+} from '../../ecs/entities/entityManager.ts';
 import CameraComponent from '../../ecs/components/cameraComponent.ts';
 import FirstPersonCamera from '../../cameras/firstPersonCamera.ts';
 import MeshComponent from '../../ecs/components/meshComponent.ts';
 import MaterialComponent from '../../ecs/components/materialComponent.ts';
 import TransformComponent from '../../ecs/components/transformComponent.ts';
 import type { GltfManager } from '../../resources/gltf.ts';
+import LightingComponent from '../../ecs/components/lightingComponent.ts';
 
 describe('MeshRenderer', () => {
   it('creates resources and draws', () => {
@@ -17,7 +22,9 @@ describe('MeshRenderer', () => {
       cameraType: 'FirstPersonCamera',
       camera: new FirstPersonCamera(),
     });
+    const lightingComponent = new LightingComponent();
     em.newSingletonEntity(Player).addComponent(cameraComponent);
+    em.newSingletonEntity(Lighting).addComponent(lightingComponent);
 
     const transformComponent = new TransformComponent();
     em.newEntity().addComponent(
@@ -32,6 +39,10 @@ describe('MeshRenderer', () => {
     vi.spyOn(transformComponent, 'getModelBuffer').mockReturnValue(
       {} as GPUBuffer
     );
+    vi.spyOn(transformComponent, 'getNormalBuffer').mockReturnValue(
+      {} as GPUBuffer
+    );
+    vi.spyOn(lightingComponent, 'getBuffer').mockReturnValue({} as GPUBuffer);
 
     const gltfManager = {
       getMesh: vi.fn(() => ({
@@ -57,8 +68,8 @@ describe('MeshRenderer', () => {
     renderer.render(context);
 
     expect(device.createSampler).toHaveBeenCalledOnce();
-    expect(device.createBindGroup).toHaveBeenCalledTimes(4);
-    expect(pass.drawIndexed).toHaveBeenCalledTimes(2);
+    expect(device.createBindGroup).toHaveBeenCalledTimes(6); // 2 renders x mesh, material, lighting
+    expect(pass.drawIndexed).toHaveBeenCalledTimes(2); // 2 renders
 
     // todo maybe validate arguments passed to GPU resources
   });

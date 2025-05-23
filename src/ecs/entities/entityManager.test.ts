@@ -1,4 +1,13 @@
-import { EntityManager, Lighting, Player } from './entityManager';
+import {
+  EntityManager,
+  type EntityManagerSnapshot,
+  Lighting,
+  Player,
+} from './entityManager';
+import { vec3 } from 'wgpu-matrix';
+import ComponentRegistry from '../components/componentRegistry.ts';
+import ModelComponent from '../components/modelComponent.ts';
+import TransformComponent from '../components/transformComponent.ts';
 
 describe('EntityManager', () => {
   class TestComponent {}
@@ -83,7 +92,140 @@ describe('EntityManager', () => {
   it('throws if singleton entity does not exist', () => {
     const em = new EntityManager();
     expect(() => em.getSingletonEntity(Player)).toThrowError(
-      'No singleton Player, singletons: '
+      'No singleton Player'
     );
+  });
+
+  describe('deserialize', () => {
+    beforeEach(() => {
+      ComponentRegistry.registerComponents(
+        import.meta.glob('../components/*Component.ts', {
+          eager: true,
+        })
+      );
+    });
+
+    it('deserializes', () => {
+      const snapshot: EntityManagerSnapshot = {
+        entities: [0],
+        singletonEntities: [{ tag: 'Player', entity: 1 }],
+        components: [
+          {
+            entity: 0,
+            type: 'ModelComponent',
+            data: {
+              ref: './assets/gltf/rubik_cube/rubik_cube.glb',
+            },
+          },
+          {
+            entity: 0,
+            type: 'TransformComponent',
+            data: {
+              transform: {
+                position: vec3.fromValues(0, 0, -2),
+              },
+            },
+          },
+          {
+            entity: 1,
+            type: 'CameraComponent',
+            data: {
+              cameraType: 'FirstPersonCamera',
+            },
+          },
+          {
+            entity: 1,
+            type: 'TransformComponent',
+            data: {
+              transform: {
+                position: vec3.fromValues(0, 1, 0),
+              },
+            },
+          },
+        ],
+      };
+      const em = new EntityManager();
+      em.deserialize(snapshot);
+
+      expect(em.hasEntity(0)).toBe(true);
+      expect(em.hasEntity(1)).toBe(true);
+      expect(em.hasEntity(2)).toBe(false);
+
+      expect(em.getSingletonEntity(Player)).toBe(1);
+      expect(
+        em.getComponent(em.getSingletonEntity(Player), TransformComponent)
+          .transform.position
+      ).toEqual(new Float32Array([0, 1, 0]));
+
+      expect(em.getComponent(0, ModelComponent).ref).toBe(
+        './assets/gltf/rubik_cube/rubik_cube.glb'
+      );
+      expect(em.getComponent(0, TransformComponent).transform.position).toEqual(
+        new Float32Array([0, 0, -2])
+      );
+
+      expect(em.newEntity().entity).toBe(2);
+    });
+
+    it('throws if snapshot contains duplicate entities', () => {
+      const snapshot: EntityManagerSnapshot = {
+        entities: [0, 1, 0],
+        singletonEntities: [],
+        components: [],
+      };
+      const em = new EntityManager();
+
+      expect(() => em.deserialize(snapshot)).toThrowError(
+        'Entity 0 already exists'
+      );
+    });
+
+    it('throws if snapshot contains duplicate entities (singletons)', () => {
+      const snapshot: EntityManagerSnapshot = {
+        entities: [],
+        singletonEntities: [
+          { tag: 'Player', entity: 1 },
+          { tag: 'Lighting', entity: 1 },
+        ],
+        components: [],
+      };
+      const em = new EntityManager();
+
+      expect(() => em.deserialize(snapshot)).toThrowError(
+        'Entity 1 already exists'
+      );
+    });
+
+    it('throws if snapshot contains unknown singletons', () => {
+      const snapshot: EntityManagerSnapshot = {
+        entities: [],
+        singletonEntities: [
+          { tag: 'Player', entity: 0 },
+          { tag: 'Unknown', entity: 1 },
+        ],
+        components: [],
+      };
+      const em = new EntityManager();
+
+      expect(() => em.deserialize(snapshot)).toThrowError(
+        'Unknown singleton Unknown in entity 1'
+      );
+    });
+
+    it('throws if snapshot contains duplicate singletons', () => {
+      const snapshot: EntityManagerSnapshot = {
+        entities: [],
+        singletonEntities: [
+          { tag: 'Player', entity: 1 },
+          { tag: 'Player', entity: 2 },
+        ],
+        components: [],
+      };
+      const em = new EntityManager();
+
+      expect(() => em.deserialize(snapshot)).toThrowError(
+        'Singleton Player already exists'
+      );
+    });
   });
 });

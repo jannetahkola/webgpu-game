@@ -35,7 +35,6 @@ class EntityQuery<C extends object> {
 }
 
 type EntityManagerSnapshot = {
-  next: number;
   entities: number[];
   singletonEntities: { tag: string; entity: number }[];
   components: { entity: number; type: string; data: object }[];
@@ -67,8 +66,7 @@ class EntityManager {
   newSingletonEntity<T extends SingletonEntity>(
     singleton: SingletonConstructor<T>
   ) {
-    if (this.#singletons.has(singleton))
-      throw new Error('Singleton ' + singleton.name + ' already exists');
+    this.#assertNewSingleton(singleton);
     const e = this.#next++;
     this.#entities.push(e);
     this.#singletons.set(singleton, e);
@@ -136,30 +134,33 @@ class EntityManager {
     singleton: SingletonConstructor<T>
   ) {
     const entity = this.#singletons.get(singleton);
-    if (entity == null)
-      throw new Error(
-        'No singleton ' +
-          singleton.name +
-          ', singletons: ' +
-          Object.keys(this.#singletons)
-      );
+    if (entity == null) throw new Error('No singleton ' + singleton.name);
     return entity;
   }
 
   deserialize(snapshot: EntityManagerSnapshot) {
-    this.#next = snapshot.next;
+    let next = 0;
+
     for (const id of snapshot.entities) {
+      this.#assertNewEntity(id);
       this.#entities.push(id);
+      console.log('restored entity ' + id);
+      if (id > next) next = id;
     }
 
     for (const obj of snapshot.singletonEntities) {
+      this.#assertNewEntity(obj.entity);
       this.#entities.push(obj.entity);
+      if (obj.entity > next) next = obj.entity;
+
       let ctor: SingletonConstructor;
       if (obj.tag === 'Player') ctor = Player;
+      else if (obj.tag === 'Lighting') ctor = Lighting;
       else
         throw new Error(
-          'Unknown singleton tag ' + obj.tag + ' in entity ' + obj.entity + ''
+          'Unknown singleton ' + obj.tag + ' in entity ' + obj.entity
         );
+      this.#assertNewSingleton(ctor);
       this.#singletons.set(ctor, obj.entity);
     }
 
@@ -168,7 +169,22 @@ class EntityManager {
       if (!Component) throw new Error('Unknown component type ' + type);
       const component = new Component(componentData);
       this.addComponent(entity, component);
+      console.log('restored component ' + type + ' on entity ' + entity);
     }
+
+    this.#next = next + 1;
+  }
+
+  #assertNewSingleton<T extends SingletonEntity>(
+    singleton: SingletonConstructor<T>
+  ) {
+    if (this.#singletons.has(singleton))
+      throw new Error('Singleton ' + singleton.name + ' already exists');
+  }
+
+  #assertNewEntity(entity: number) {
+    if (this.#entities.includes(entity))
+      throw new Error('Entity ' + entity + ' already exists');
   }
 }
 

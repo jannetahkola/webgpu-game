@@ -1,17 +1,24 @@
 import type { Transform } from '../../rendering/transform.ts';
-import { mat4, type Mat4, type Quat, quat, type Vec3, vec3 } from 'wgpu-matrix';
+import { mat4, type Quat, quat, type Vec3, vec3 } from 'wgpu-matrix';
 
 export default class TransformComponent {
   transform: Transform;
 
-  rotationMat: Mat4 = mat4.identity();
-  modelMat: Mat4 = mat4.identity();
+  rotationMat = mat4.identity();
+  modelMat = mat4.identity();
   modelBuffer?: GPUBuffer;
+  normalMat = mat4.identity();
+  normalBuffer?: GPUBuffer;
   dirty = true;
 
   getModelBuffer() {
     if (!this.modelBuffer) throw new Error('Model buffer not set');
     return this.modelBuffer;
+  }
+
+  getNormalBuffer() {
+    if (!this.normalBuffer) throw new Error('Normal buffer not set');
+    return this.normalBuffer;
   }
 
   constructor({ transform }: { transform?: Partial<Transform> } = {}) {

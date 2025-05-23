@@ -1,10 +1,15 @@
-import { EntityQuery, Player } from '../../ecs/entities/entityManager';
+import {
+  EntityQuery,
+  Lighting,
+  Player,
+} from '../../ecs/entities/entityManager';
 import MeshComponent from '../../ecs/components/meshComponent.ts';
 import TransformComponent from '../../ecs/components/transformComponent.ts';
 import type { RenderContext } from './renderContext.ts';
 import MaterialComponent from '../../ecs/components/materialComponent.ts';
 import litPipeline from '../pipelines/litPipeline.ts';
 import CameraComponent from '../../ecs/components/cameraComponent.ts';
+import LightingComponent from '../../ecs/components/lightingComponent.ts';
 
 export default class MeshRenderer {
   readonly #query = new EntityQuery([
@@ -34,12 +39,31 @@ export default class MeshRenderer {
       sampleCount
     );
 
-    pass.setPipeline(pipeline);
+    const lightingComponent = em.getComponent(
+      em.getSingletonEntity(Lighting),
+      LightingComponent
+    );
+
+    // todo cache
+    const lightingBindGroup = device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(2),
+      entries: [
+        {
+          binding: 0,
+          resource: {
+            buffer: lightingComponent.getBuffer(),
+          },
+        },
+      ],
+    });
 
     const cameraComponent = em.getComponent(
       em.getSingletonEntity(Player),
       CameraComponent
     );
+
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(2, lightingBindGroup);
 
     for (const e of this.#query.execute(em)) {
       const mesh = gltfManager.getMesh(em.getComponent(e, MeshComponent).mesh);
@@ -62,6 +86,12 @@ export default class MeshRenderer {
             binding: 1,
             resource: {
               buffer: transformComponent.getModelBuffer(),
+            },
+          },
+          {
+            binding: 2,
+            resource: {
+              buffer: transformComponent.getNormalBuffer(),
             },
           },
         ],
@@ -92,8 +122,8 @@ export default class MeshRenderer {
       pass.setBindGroup(1, materialBindGroup);
       pass.setVertexBuffer(0, mesh.vertexBuffer);
       pass.setVertexBuffer(1, mesh.uvBuffer);
-      // pass.setVertexBuffer(2, mesh.normalBuffer);
-      pass.setIndexBuffer(mesh.indexBuffer, 'uint32');
+      pass.setVertexBuffer(2, mesh.normalBuffer);
+      pass.setIndexBuffer(mesh.indexBuffer, 'uint16');
       pass.drawIndexed(mesh.indexCount);
     }
   }
