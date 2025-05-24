@@ -68,6 +68,8 @@ describe('GltfManager', () => {
     const manager = new GltfManager({ io });
 
     await manager.loadGltf(device, ['./assets/gltf/rubik_cube/rubik_cube.glb']);
+    await manager.loadGltf(device, ['./assets/gltf/rubik_cube/rubik_cube.glb']); // should do nothing
+
     const model = manager.get('./assets/gltf/rubik_cube/rubik_cube.glb');
 
     expect(model.meshes.length).toBe(2);

@@ -71,11 +71,10 @@ class GltfManager {
   }
 
   async loadGltf(device: GPUDevice, refs: string[]) {
-    // todo don't load same gltf multiple times, only load once
-
     const promises = [];
 
     for (const ref of refs) {
+      if (this.#models[ref]) continue;
       if (!urls[ref]) throw new Error(`GLTF ${ref} not found`);
 
       promises.push(
