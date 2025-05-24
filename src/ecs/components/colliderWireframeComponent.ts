@@ -21,6 +21,6 @@ export default class ColliderWireframeComponent {
   destroy() {
     this.vertexBuffer?.destroy();
     this.lineIndexBuffer?.destroy();
-    console.log('wireframe destroyed')
+    console.log('wireframe destroyed');
   }
 }
