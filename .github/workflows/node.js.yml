@@ -32,16 +32,18 @@ jobs:
         id: extract
         run: |
           PCT=$(jq '.total.lines.pct' coverage/coverage-summary.json)
+          LINES=$(jq '.total.lines.total' coverage/coverage-summary.json)
           COLOR=red
           if (( $(echo "$PCT >= 80" | bc -l) )); then COLOR=success
           elif (( $(echo "$PCT >= 60" | bc -l) )); then COLOR=yellow
           fi
           echo "pct=${PCT}" >> $GITHUB_OUTPUT
+          echo "lines=${LINES}" >> $GITHUB_OUTPUT
           echo "color=${COLOR}" >> $GITHUB_OUTPUT
       - name: Update coverage Gist
         run: |
           JSON=$(jq -n \
-            --arg pct "${{ steps.extract.outputs.pct }}%" \
+            --arg pct "${{ steps.extract.outputs.pct }}% of ${{ steps.extract.outputs.lines }} lines" \
             --arg color "${{ steps.extract.outputs.color }}" \
             '{schemaVersion:1,label:"coverage",message:$pct,color:$color}')
 
