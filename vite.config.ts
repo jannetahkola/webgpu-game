@@ -15,6 +15,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json-summary'],
       include: ['src/**/*.ts'],
+      exclude: ['src/**/*.test-d.ts', 'src/scenes/prefabs/*Prefab.ts'],
       reportOnFailure: true,
     },
   },
