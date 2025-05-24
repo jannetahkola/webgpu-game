@@ -8,12 +8,16 @@ import MeshRenderer from './meshRenderer.ts';
 import ResourceManager from '../../resources/resourceManager.ts';
 import ShadowRenderer from './shadowRenderer.ts';
 import SkyboxRenderer from './skyboxRenderer.ts';
+import MeshWireframeRenderer from './meshWireframeRenderer.ts';
+import ColliderWireframeRenderer from './colliderWireframeRenderer.ts';
 
 describe('MainRenderer', () => {
   let meshRendererStub: MeshRenderer;
   let postProcessRendererStub: PostProcessRenderer;
   let shadowRendererStub: ShadowRenderer;
   let skyboxRendererStub: SkyboxRenderer;
+  let meshWireframeRendererStub: MeshWireframeRenderer;
+  let colliderWireframeRendererStub: ColliderWireframeRenderer;
 
   let viewport: Viewport;
   let rendererFactory: RendererFactory;
@@ -51,6 +55,14 @@ describe('MainRenderer', () => {
       render: vi.fn(),
     } as unknown as SkyboxRenderer;
 
+    meshWireframeRendererStub = {
+      render: vi.fn(),
+    } as unknown as MeshWireframeRenderer;
+
+    colliderWireframeRendererStub = {
+      render: vi.fn(),
+    } as unknown as ColliderWireframeRenderer;
+
     rendererFactory = {
       create: vi.fn(
         <T>(Ctor: new (...args: unknown[]) => T, ..._args: unknown[]): T => {
@@ -65,6 +77,12 @@ describe('MainRenderer', () => {
           }
           if (Ctor === SkyboxRenderer) {
             return skyboxRendererStub as T;
+          }
+          if (Ctor === MeshWireframeRenderer) {
+            return meshWireframeRendererStub as T;
+          }
+          if (Ctor === ColliderWireframeRenderer) {
+            return colliderWireframeRendererStub as T;
           }
           throw new Error('Unknown renderer: ' + Ctor.name);
         }

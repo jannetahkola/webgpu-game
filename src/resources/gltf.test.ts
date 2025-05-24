@@ -84,7 +84,7 @@ describe('GltfManager', () => {
     );
 
     expect(device.createTexture).toHaveBeenCalledOnce(); // default texture
-    expect(device.createBuffer).toHaveBeenCalledTimes(9); // 5 on first iteration, then material reused
+    expect(device.createBuffer).toHaveBeenCalledTimes(11); // 7 on first iteration, then material reused
   });
 
   // todo test non-default texture loading
