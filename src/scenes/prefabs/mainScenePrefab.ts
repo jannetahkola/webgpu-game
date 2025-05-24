@@ -117,6 +117,16 @@ const mainScenePrefab = {
         data: {},
       },
       {
+        entity: 5,
+        type: 'ColliderComponent',
+        data: {
+          collider: {
+            type: 'mesh',
+            ref: './assets/gltf/ground/ground2_collider.glb',
+          },
+        },
+      },
+      {
         entity: 6,
         type: 'ModelComponent',
         data: {

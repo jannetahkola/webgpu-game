@@ -1,3 +1,5 @@
+import CssLog from '../../logging/logging.ts';
+
 type Class<C> = C extends new (...args: never[]) => object ? C : never;
 type Constructor<I = object, A extends unknown[] = unknown[]> = new (
   ...args: A
@@ -17,18 +19,24 @@ export default class ComponentRegistry {
   }
 
   static registerComponents(modules: Record<string, unknown>) {
+    const start = performance.now();
+
     this.#registry.clear();
-    console.log('registry cleared');
 
     for (const path in modules) {
       const module = modules[path] as Record<string, unknown>;
       for (const [_, value] of Object.entries(module)) {
         if (typeof value !== 'function') continue;
         this.set(value as Constructor);
-        console.log(
-          'registered component ' + value.name + ' from ' + path + ''
-        );
       }
     }
+
+    console.log(
+      ...CssLog.successTimed(
+        `registered ${this.#registry.size} components`,
+        start
+      ),
+      [...this.#registry.keys()]
+    );
   }
 }

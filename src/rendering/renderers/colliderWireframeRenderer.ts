@@ -16,7 +16,8 @@ export default class ColliderWireframeRenderer {
   ]);
 
   render(context: RenderContext) {
-    const { device, pass, txScene, txDepth, sampleCount, em } = context;
+    const { device, pass, txScene, txDepth, sampleCount, em, resourceManager } =
+      context;
 
     const camera = em.getComponent(
       em.getSingletonEntity(Player),
@@ -34,6 +35,7 @@ export default class ColliderWireframeRenderer {
 
     for (const e of this.#query.execute(em)) {
       const transformComponent = em.getComponent(e, TransformComponent);
+      const colliderComponent = em.getComponent(e, ColliderComponent);
       const wireframeComponent = em.getComponent(e, ColliderWireframeComponent);
 
       const bindGroup = device.createBindGroup({
@@ -54,10 +56,29 @@ export default class ColliderWireframeRenderer {
         ],
       });
 
-      pass.setBindGroup(0, bindGroup);
-      pass.setVertexBuffer(0, wireframeComponent.getVertexBuffer());
-      pass.setIndexBuffer(wireframeComponent.getLineIndexBuffer(), 'uint16');
-      pass.drawIndexed(wireframeComponent.getLineIndexCount());
+      if (colliderComponent.collider.type === 'box') {
+        const vertexBuffer = wireframeComponent.getVertexBuffer();
+        const indexBuffer = wireframeComponent.getLineIndexBuffer();
+        const indexCount = wireframeComponent.getLineIndexCount();
+
+        pass.setBindGroup(0, bindGroup);
+        pass.setVertexBuffer(0, vertexBuffer);
+        pass.setIndexBuffer(indexBuffer, 'uint16');
+        pass.drawIndexed(indexCount);
+      } else if (colliderComponent.collider.type === 'mesh') {
+        for (const mesh of resourceManager.getModel(
+          colliderComponent.collider.ref
+        ).meshes) {
+          const vertexBuffer = mesh.vertexBuffer;
+          const indexBuffer = mesh.lineIndexBuffer;
+          const indexCount = mesh.lineIndexCount;
+
+          pass.setBindGroup(0, bindGroup);
+          pass.setVertexBuffer(0, vertexBuffer);
+          pass.setIndexBuffer(indexBuffer, mesh.indexFormat);
+          pass.drawIndexed(indexCount);
+        }
+      }
     }
   }
 }

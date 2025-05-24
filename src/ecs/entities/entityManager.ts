@@ -1,4 +1,5 @@
 import ComponentRegistry from '../components/componentRegistry';
+import CssLog from '../../logging/logging.ts';
 
 type Instance<I> = I extends new (...args: never[]) => object ? never : I;
 type Class<C> = C extends new (...args: never[]) => object ? C : never;
@@ -117,12 +118,12 @@ class EntityManager {
     componentConstructor: Constructor<I>
   ) {
     const map = this.#components.get(componentConstructor);
-    if (!map) return;
+    if (!map) return false;
     const component = map.get(entity)!;
     if ('destroy' in component && typeof component.destroy === 'function') {
       component.destroy(); // todo should come from an interface
     }
-    map.delete(entity);
+    return map.delete(entity);
   }
 
   getComponent<I extends object, A extends unknown[]>(
@@ -174,12 +175,13 @@ class EntityManager {
   }
 
   deserialize(snapshot: EntityManagerSnapshot) {
+    const start = performance.now();
+
     let next = 0;
 
     for (const id of snapshot.entities) {
       this.#assertNewEntity(id);
       this.#entities.push(id);
-      console.log('restored entity ' + id);
       if (id > next) next = id;
     }
 
@@ -213,8 +215,16 @@ class EntityManager {
       if (!Component) throw new Error('Unknown component type ' + type);
       const component = new Component(componentData);
       this.addComponent(entity, component);
-      console.log('restored component ' + type + ' on entity ' + entity);
+      console.debug('restored component ' + type + ' on entity ' + entity);
     }
+
+    console.log(
+      ...CssLog.successTimed(
+        `restored ${this.#entities.length} entities`,
+        start
+      ),
+      this.#entities
+    );
 
     this.#next = next + 1;
   }

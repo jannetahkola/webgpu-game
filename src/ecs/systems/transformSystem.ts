@@ -34,7 +34,6 @@ export default class TransformSystem implements System {
         // todo test 0 works
         const parentComponent = em.getComponent(parent, TransformComponent);
         mat4.multiply(modelMatrix, parentComponent.modelMat, modelMatrix);
-        console.log('parent', parent);
       }
 
       // Inverse transpose of model -> normal

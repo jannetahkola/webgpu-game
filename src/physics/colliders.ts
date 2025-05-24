@@ -7,6 +7,11 @@ type BoxCollider = {
   orientation: Mat3;
 };
 
-type Collider = BoxCollider;
+type MeshCollider = {
+  type: 'mesh';
+  ref: string;
+};
 
-export type { Collider, BoxCollider };
+type Collider = BoxCollider | MeshCollider;
+
+export type { Collider, BoxCollider, MeshCollider };

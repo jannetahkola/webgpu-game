@@ -21,6 +21,9 @@ import SkyboxSystem from '../ecs/systems/skyboxSystem.ts';
 import ColliderWireframeSystem from '../ecs/systems/colliderWireframeSystem.ts';
 import DiagnosticsResource from '../ecs/resources/diagnosticsResource.ts';
 import MeshWireframeSystem from '../ecs/systems/meshWireframeSystem.ts';
+import ColliderComponent from '../ecs/components/colliderComponent.ts';
+import type { MeshCollider } from '../physics/colliders.ts';
+import CssLog from '../logging/logging.ts';
 
 export default class PrefabSceneLoader {
   readonly #resourceManager: ResourceManager;
@@ -30,7 +33,8 @@ export default class PrefabSceneLoader {
   }
 
   async load(device: GPUDevice, prefab: Prefab, input: GameInput) {
-    console.log('Loading prefab', prefab);
+    const start = performance.now();
+    console.debug('loading prefab', prefab);
 
     const scene = new Scene(prefab.name);
 
@@ -53,6 +57,8 @@ export default class PrefabSceneLoader {
       new ColliderWireframeSystem(device)
     );
 
+    console.log(...CssLog.successTimed('prefab loaded', start, prefab.name));
+
     return scene;
   }
 
@@ -62,6 +68,14 @@ export default class PrefabSceneLoader {
       const refs = modelComponents.map(
         (c) => scene.em.getComponent(c, ModelComponent).ref
       );
+      await this.#resourceManager.loadModels(device, refs);
+    }
+    {
+      const colliderComponents = scene.em.getEntitiesWith([ColliderComponent]);
+      const refs = colliderComponents
+        .map((c) => scene.em.getComponent(c, ColliderComponent))
+        .filter((c) => c.collider.type === 'mesh')
+        .map((c) => (c.collider as MeshCollider).ref);
       await this.#resourceManager.loadModels(device, refs);
     }
     {

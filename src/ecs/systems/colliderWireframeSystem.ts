@@ -73,8 +73,9 @@ export default class ColliderWireframeSystem implements System {
 
     for (const e of this.#query.execute(em)) {
       // todo collider updates
-      const collider = em.getComponent(e, ColliderComponent).collider;
       if (!diagnostics.colliderWireframesEnabledDirty) continue;
+
+      const collider = em.getComponent(e, ColliderComponent).collider;
 
       if (
         diagnostics.colliderWireframesEnabled &&
@@ -86,25 +87,25 @@ export default class ColliderWireframeSystem implements System {
         switch (collider.type) {
           case 'box': {
             const corners = getBoxCorners(collider);
-            if (!wireframe.vertexBuffer) {
-              wireframe.vertexBuffer = this.#device.createBuffer({
-                label: 'box collider vertex buffer',
-                size: corners.byteLength,
-                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-              });
-              wireframe.lineIndexBuffer = this.#device.createBuffer({
-                label: 'box collider line index buffer',
-                size: boxLineIndices.byteLength,
-                usage: GPUBufferUsage.INDEX,
-                mappedAtCreation: true,
-              });
-              wireframe.lineIndexCount = boxLineIndices.length;
 
-              new Uint16Array(wireframe.lineIndexBuffer.getMappedRange()).set(
-                boxLineIndices
-              );
-              wireframe.lineIndexBuffer.unmap();
-            }
+            wireframe.vertexBuffer = this.#device.createBuffer({
+              label: 'box collider vertex buffer',
+              size: corners.byteLength,
+              usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+            });
+
+            wireframe.lineIndexBuffer = this.#device.createBuffer({
+              label: 'box collider line index buffer',
+              size: boxLineIndices.byteLength,
+              usage: GPUBufferUsage.INDEX,
+              mappedAtCreation: true,
+            });
+            new Uint16Array(wireframe.lineIndexBuffer.getMappedRange()).set(
+              boxLineIndices
+            );
+            wireframe.lineIndexBuffer.unmap();
+
+            wireframe.lineIndexCount = boxLineIndices.length;
 
             this.#device.queue.writeBuffer(
               wireframe.vertexBuffer,
@@ -114,12 +115,16 @@ export default class ColliderWireframeSystem implements System {
 
             break;
           }
+          case 'mesh': {
+            // renderer will use the meshes
+            break;
+          }
         }
 
         console.log('enable collider wireframe');
       } else {
-        em.removeComponent(e, ColliderWireframeComponent);
-        console.log('remove collider wireframe');
+        const removed = em.removeComponent(e, ColliderWireframeComponent);
+        if (removed) console.log('remove collider wireframe');
       }
     }
 

@@ -5,6 +5,7 @@ import type {
 import { WebIO } from '@gltf-transform/core';
 import { assertFloat32Array } from '../utils/asserts.ts';
 import { KHRMaterialsUnlit } from '@gltf-transform/extensions';
+import CssLog from '../logging/logging.ts';
 
 const urls: Record<string, () => Promise<unknown>> = import.meta.glob(
   './assets/gltf/**/*.glb',
@@ -63,7 +64,11 @@ class GltfManager {
 
   getMesh(ref: string) {
     const mesh = this.#meshes[ref];
-    if (!mesh) throw new Error(`Mesh '${ref}' not found`);
+    if (!mesh)
+      throw new Error(
+        `Mesh '${ref}' not found, meshes: ` +
+          Object.keys(this.#meshes).join('\n')
+      );
     return mesh;
   }
 
@@ -76,12 +81,14 @@ class GltfManager {
   async loadGltf(device: GPUDevice, refs: string[]) {
     const promises = [];
 
-    for (const ref of refs) {
+    for (const ref of new Set(refs)) {
       if (this.#models[ref]) continue;
-      if (!urls[ref]) throw new Error(`GLTF ${ref} not found`);
+      if (!urls[ref]) throw new Error(`gltf ${ref} not found`);
 
       promises.push(
         (async () => {
+          const start = performance.now();
+
           const url = (await urls[ref]?.()) as string;
           const doc = await this.#io.read(url);
 
@@ -232,6 +239,8 @@ class GltfManager {
           }
 
           this.#models[ref] = model;
+
+          console.log(...CssLog.successTimed('gltf loaded', start, ref));
         })()
       );
     }

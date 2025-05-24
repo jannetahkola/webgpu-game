@@ -1,3 +1,5 @@
+import CssLog from '../logging/logging.ts';
+
 const urls: Record<string, () => Promise<unknown>> = import.meta.glob(
   './assets/cubemaps/**/*.png',
   {
@@ -28,6 +30,8 @@ class CubeMapManager {
   async loadCubeMap(device: GPUDevice, refs: string[]) {
     for (const ref of refs) {
       if (this.#cubeMaps.has(ref)) continue;
+
+      const start = performance.now();
 
       const promises = orderedFaces.map(async (face) => {
         const key = ref + face;
@@ -72,6 +76,8 @@ class CubeMapManager {
       }
 
       this.#cubeMaps.set(ref, texture.createView({ dimension: 'cube' }));
+
+      console.log(...CssLog.successTimed('cube map loaded', start, ref));
     }
   }
 }

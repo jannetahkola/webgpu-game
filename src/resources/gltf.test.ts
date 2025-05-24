@@ -67,7 +67,10 @@ describe('GltfManager', () => {
     } as unknown as WebIO;
     const manager = new GltfManager({ io });
 
-    await manager.loadGltf(device, ['./assets/gltf/rubik_cube/rubik_cube.glb']);
+    await manager.loadGltf(device, [
+      './assets/gltf/rubik_cube/rubik_cube.glb',
+      './assets/gltf/rubik_cube/rubik_cube.glb',
+    ]); // should create a set internally so processed only once
     await manager.loadGltf(device, ['./assets/gltf/rubik_cube/rubik_cube.glb']); // should do nothing
 
     const model = manager.get('./assets/gltf/rubik_cube/rubik_cube.glb');
