@@ -1,10 +1,14 @@
 import { vec3, type Vec3 } from 'wgpu-matrix';
 
 export default class LightingComponent {
-  direction: Vec3;
+  target: Vec3;
   intensity: number;
   diffuseBias: number;
-  bufferArray = new Float32Array(5);
+  ambient: number;
+
+  direction = vec3.create();
+
+  bufferArray = new Float32Array(6);
   buffer?: GPUBuffer;
   dirty = true;
 
@@ -14,16 +18,19 @@ export default class LightingComponent {
   }
 
   constructor({
-    direction,
+    target,
     intensity,
     diffuseBias,
+    ambient,
   }: {
-    direction?: Vec3;
+    target?: Vec3;
     intensity?: number;
     diffuseBias?: number;
+    ambient?: number;
   } = {}) {
-    this.direction = direction ?? vec3.fromValues(0, 1, 1);
+    this.target = target ?? vec3.fromValues(0, 0, 0);
     this.intensity = intensity ?? 1;
-    this.diffuseBias = diffuseBias ?? 0.2;
+    this.diffuseBias = diffuseBias ?? 0.1;
+    this.ambient = ambient ?? 0.25;
   }
 }

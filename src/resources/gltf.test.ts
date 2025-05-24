@@ -86,4 +86,5 @@ describe('GltfManager', () => {
   });
 
   // todo test non-default texture loading
+  // todo test index format handling
 });

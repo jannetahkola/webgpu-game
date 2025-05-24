@@ -1,5 +1,5 @@
 import type { EntityManager } from '../../ecs/entities/entityManager.ts';
-import type { GltfManager } from '../../resources/gltf.ts';
+import type ResourceManager from '../../resources/resourceManager.ts';
 
 export type MutableRenderContext = {
   device: GPUDevice;
@@ -8,7 +8,7 @@ export type MutableRenderContext = {
   txDepth: GPUTexture;
   sampleCount: number;
   em: EntityManager;
-  gltfManager: GltfManager;
+  resourceManager: ResourceManager;
 };
 
 export type RenderContext = Readonly<MutableRenderContext>;

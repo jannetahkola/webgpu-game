@@ -4,10 +4,11 @@ import { Viewport, ViewportEvents } from './viewport/viewport.ts';
 import MainRenderer from './rendering/renderers/mainRenderer.ts';
 import RendererFactory from './rendering/renderers/rendererFactory.ts';
 import { defaultBindings, GameInput } from './input/actions.ts';
-import { GltfManager } from './resources/gltf.ts';
 import PrefabSceneLoader from './scenes/prefabSceneLoader.ts';
 import mainScenePrefab from './scenes/prefabs/mainScenePrefab.ts';
 import ComponentRegistry from './ecs/components/componentRegistry.ts';
+import ResourceManager from './resources/resourceManager.ts';
+import ResourceManagerFactory from './resources/resourceManagerFactory.ts';
 
 async function main() {
   const canvas = window.document.createElement('canvas');
@@ -26,7 +27,7 @@ async function main() {
     initialBindings,
   });
 
-  const gltfManager = new GltfManager();
+  const resourceManager = new ResourceManager(new ResourceManagerFactory());
 
   const rendererFactory = new RendererFactory();
   const rendererOptions = { clearValue: [0.1, 0.1, 0.1, 1], multisampling: 4 };
@@ -34,7 +35,7 @@ async function main() {
     device,
     viewport,
     rendererFactory,
-    gltfManager,
+    resourceManager,
     options: rendererOptions,
   });
 
@@ -44,7 +45,7 @@ async function main() {
     })
   );
 
-  const scene = await new PrefabSceneLoader(gltfManager).load(
+  const scene = await new PrefabSceneLoader(resourceManager).load(
     device,
     mainScenePrefab,
     input

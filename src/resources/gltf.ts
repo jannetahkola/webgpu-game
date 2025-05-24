@@ -3,7 +3,7 @@ import type {
   Texture as GltfTexture,
 } from '@gltf-transform/core';
 import { WebIO } from '@gltf-transform/core';
-import { assertFloat32Array, assertUint16Array } from '../utils/asserts.ts';
+import { assertFloat32Array } from '../utils/asserts.ts';
 import { KHRMaterialsUnlit } from '@gltf-transform/extensions';
 
 const urls: Record<string, () => Promise<unknown>> = import.meta.glob(
@@ -22,9 +22,10 @@ type Model = {
 type Mesh = {
   vertexArray: Float32Array;
   vertexBuffer: GPUBuffer;
-  indexArray: Uint16Array;
+  indexArray: Uint16Array | Uint32Array;
   indexBuffer: GPUBuffer;
   indexCount: number;
+  indexFormat: GPUIndexFormat;
   uvArray: Float32Array;
   uvBuffer: GPUBuffer;
   normalArray: Float32Array;
@@ -44,16 +45,16 @@ class GltfManager {
   readonly #models: Record<string, Model> = {};
   readonly #meshes: Record<string, Mesh> = {};
   readonly #materials: Record<string, Material> = {};
-  readonly #textureCache = new Map<GltfTexture, GPUTexture>();
+  readonly #textures = new Map<GltfTexture, GPUTexture>();
   #defaultTexture?: GPUTexture;
 
   constructor({ io }: { io?: WebIO } = {}) {
     this.#io = io ?? new WebIO().registerExtensions([KHRMaterialsUnlit]);
   }
 
-  get(url: string) {
-    const model = this.#models[url];
-    if (!model) throw new Error(`Model '${url}' not found`);
+  get(ref: string) {
+    const model = this.#models[ref];
+    if (!model) throw new Error(`Model '${ref}' not found`);
     return model;
   }
 
@@ -70,10 +71,12 @@ class GltfManager {
   }
 
   async loadGltf(device: GPUDevice, refs: string[]) {
+    // todo don't load same gltf multiple times, only load once
+
     const promises = [];
 
     for (const ref of refs) {
-      if (!urls[ref]) throw new Error(`URL for ${ref} not found`);
+      if (!urls[ref]) throw new Error(`GLTF ${ref} not found`);
 
       promises.push(
         (async () => {
@@ -133,8 +136,7 @@ class GltfManager {
               new Float32Array(normalBuffer.getMappedRange()).set(normalArray);
               normalBuffer.unmap();
 
-              // support uint16 only for now, not expecting large models
-              const indexArray = assertUint16Array(indices.getArray());
+              const indexArray = indices.getArray()!; // nullability checked above
               const indexCount = indexArray.length;
               const indexBuffer = device.createBuffer({
                 label: 'mesh index buffer',
@@ -142,7 +144,16 @@ class GltfManager {
                 usage: GPUBufferUsage.INDEX,
                 mappedAtCreation: true,
               });
-              new Uint16Array(indexBuffer.getMappedRange()).set(indexArray);
+              let indexFormat!: GPUIndexFormat;
+              if (indexArray instanceof Uint16Array) {
+                new Uint16Array(indexBuffer.getMappedRange()).set(indexArray);
+                indexFormat = 'uint16';
+              } else if (indexArray instanceof Uint32Array) {
+                new Uint32Array(indexBuffer.getMappedRange()).set(indexArray);
+                indexFormat = 'uint32';
+              } else {
+                throw new Error('Unsupported index type: ' + indexArray.constructor.name);
+              }
               indexBuffer.unmap();
 
               const ref = `${url}#${node.getName()}:${prim.getName()}`;
@@ -179,6 +190,7 @@ class GltfManager {
                 indexArray,
                 indexBuffer,
                 indexCount,
+                indexFormat,
                 uvArray,
                 uvBuffer,
                 normalArray,
@@ -206,8 +218,8 @@ class GltfManager {
       return this.#getOrCreateDefaultTexture(device);
     }
 
-    if (this.#textureCache.has(baseColorTexture)) {
-      return this.#textureCache.get(baseColorTexture)!;
+    if (this.#textures.has(baseColorTexture)) {
+      return this.#textures.get(baseColorTexture)!;
     }
 
     const blob = new Blob([baseColorTexture.getImage()!], {
@@ -234,7 +246,7 @@ class GltfManager {
 
     bitmap.close();
 
-    this.#textureCache.set(baseColorTexture, texture);
+    this.#textures.set(baseColorTexture, texture);
 
     return texture;
   }

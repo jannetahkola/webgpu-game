@@ -52,6 +52,7 @@ export default class PlayerControllerSystem implements System {
 
     vec3.zero(moveDir);
     vec3.addScaled(moveDir, localForward, controller.moveDir[2], moveDir);
+    vec3.addScaled(moveDir, worldUp, controller.moveDir[1], moveDir);
     vec3.addScaled(moveDir, localRight, controller.moveDir[0], moveDir);
 
     if (vec3.lengthSq(moveDir) > 0) {

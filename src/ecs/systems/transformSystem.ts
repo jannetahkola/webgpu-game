@@ -34,10 +34,12 @@ export default class TransformSystem implements System {
         // todo test 0 works
         const parentComponent = em.getComponent(parent, TransformComponent);
         mat4.multiply(modelMatrix, parentComponent.modelMat, modelMatrix);
+        console.log('parent', parent);
       }
 
       // Inverse transpose of model -> normal
-      mat3.invert(modelMatrix, normalMatrix);
+      mat3.fromMat4(modelMatrix, normalMatrix);
+      mat3.invert(normalMatrix, normalMatrix);
       mat3.transpose(normalMatrix, normalMatrix);
 
       component.modelBuffer ??= this.#device.createBuffer({

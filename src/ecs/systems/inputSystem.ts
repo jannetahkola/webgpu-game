@@ -34,5 +34,11 @@ export default class InputSystem implements System {
     if (input.isActive(Actions.moveRight)) {
       controller.moveDir[0] += 1;
     }
+    if (input.isActive(Actions.ascend)) {
+      controller.moveDir[1] += 1;
+    }
+    if (input.isActive(Actions.descend)) {
+      controller.moveDir[1] += -1;
+    }
   }
 }

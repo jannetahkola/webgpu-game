@@ -10,6 +10,7 @@ import MaterialComponent from '../../ecs/components/materialComponent.ts';
 import litPipeline from '../pipelines/litPipeline.ts';
 import CameraComponent from '../../ecs/components/cameraComponent.ts';
 import LightingComponent from '../../ecs/components/lightingComponent.ts';
+import ShadowComponent from '../../ecs/components/shadowComponent.ts';
 
 export default class MeshRenderer {
   readonly #query = new EntityQuery([
@@ -21,7 +22,7 @@ export default class MeshRenderer {
   #materialTextureSampler?: GPUSampler;
 
   render(context: RenderContext) {
-    const { device, pass, txScene, txDepth, sampleCount, em, gltfManager } =
+    const { device, pass, txScene, txDepth, sampleCount, em, resourceManager } =
       context;
 
     this.#materialTextureSampler ??= device.createSampler({
@@ -39,10 +40,9 @@ export default class MeshRenderer {
       sampleCount
     );
 
-    const lightingComponent = em.getComponent(
-      em.getSingletonEntity(Lighting),
-      LightingComponent
-    );
+    const light = em.getSingletonEntity(Lighting);
+    const lightingComponent = em.getComponent(light, LightingComponent);
+    const shadowComponent = em.getComponent(light, ShadowComponent);
 
     // todo cache
     const lightingBindGroup = device.createBindGroup({
@@ -57,6 +57,33 @@ export default class MeshRenderer {
       ],
     });
 
+    const shadowBindGroup = device.createBindGroup({
+      label: 'shadow bind group',
+      layout: pipeline.getBindGroupLayout(3),
+      entries: [
+        {
+          binding: 0,
+          resource: {
+            buffer: shadowComponent.getBuffer(),
+          },
+        },
+        {
+          binding: 1,
+          resource: shadowComponent.getDepthTexture().createView(),
+        },
+        {
+          binding: 2,
+          resource: shadowComponent.getDepthTextureSampler(),
+        },
+        {
+          binding: 3,
+          resource: {
+            buffer: shadowComponent.getViewProjectionBuffer(),
+          },
+        },
+      ],
+    });
+
     const cameraComponent = em.getComponent(
       em.getSingletonEntity(Player),
       CameraComponent
@@ -64,10 +91,13 @@ export default class MeshRenderer {
 
     pass.setPipeline(pipeline);
     pass.setBindGroup(2, lightingBindGroup);
+    pass.setBindGroup(3, shadowBindGroup);
 
     for (const e of this.#query.execute(em)) {
-      const mesh = gltfManager.getMesh(em.getComponent(e, MeshComponent).mesh);
-      const material = gltfManager.getMaterial(
+      const mesh = resourceManager.getModelMesh(
+        em.getComponent(e, MeshComponent).mesh
+      );
+      const material = resourceManager.getModelMaterial(
         em.getComponent(e, MaterialComponent).material
       );
       const transformComponent = em.getComponent(e, TransformComponent);
@@ -123,7 +153,7 @@ export default class MeshRenderer {
       pass.setVertexBuffer(0, mesh.vertexBuffer);
       pass.setVertexBuffer(1, mesh.uvBuffer);
       pass.setVertexBuffer(2, mesh.normalBuffer);
-      pass.setIndexBuffer(mesh.indexBuffer, 'uint16');
+      pass.setIndexBuffer(mesh.indexBuffer, mesh.indexFormat);
       pass.drawIndexed(mesh.indexCount);
     }
   }

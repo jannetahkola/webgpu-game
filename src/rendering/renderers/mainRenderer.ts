@@ -2,9 +2,11 @@ import { type Viewport } from '../../viewport/viewport.ts';
 import RendererFactory from './rendererFactory.ts';
 import PostProcessRenderer from './postprocessRenderer.ts';
 import type { MutableRenderContext, RenderContext } from './renderContext.ts';
-import type { EntityManager } from '../../ecs/entities/entityManager.ts';
-import type { GltfManager } from '../../resources/gltf.ts';
 import MeshRenderer from './meshRenderer.ts';
+import ShadowRenderer from './shadowRenderer.ts';
+import SkyboxRenderer from './skyboxRenderer.ts';
+import type ResourceManager from '../../resources/resourceManager.ts';
+import type { EntityManager } from '../../ecs/entities/entityManager.ts';
 
 type MainRendererOptions = {
   clearValue: number[];
@@ -15,9 +17,11 @@ export default class MainRenderer {
   readonly #device: GPUDevice;
   readonly #viewport: Viewport;
   readonly #rendererFactory: RendererFactory;
-  readonly #gltfManager: GltfManager;
+  readonly #resourceManager: ResourceManager;
   readonly #options: MainRendererOptions;
 
+  readonly #rShadow;
+  readonly #rSkybox;
   readonly #rMesh;
   readonly #rPostProcess;
 
@@ -35,24 +39,26 @@ export default class MainRenderer {
     device,
     viewport,
     rendererFactory,
-    gltfManager,
+    resourceManager,
     options,
   }: {
     device: GPUDevice;
     viewport: Viewport;
     rendererFactory: RendererFactory;
-    gltfManager: GltfManager;
+    resourceManager: ResourceManager;
     options?: Partial<MainRendererOptions>;
   }) {
     this.#device = device;
     this.#viewport = viewport;
     this.#rendererFactory = rendererFactory;
-    this.#gltfManager = gltfManager;
+    this.#resourceManager = resourceManager;
     this.#options = {
       ...{ clearValue: [0, 0, 0, 1], multisampling: 1 },
       ...options,
     };
 
+    this.#rShadow = this.#rendererFactory.create(ShadowRenderer);
+    this.#rSkybox = this.#rendererFactory.create(SkyboxRenderer);
     this.#rMesh = this.#rendererFactory.create(MeshRenderer);
     this.#rPostProcess = this.#rendererFactory.create(PostProcessRenderer);
   }
@@ -76,14 +82,15 @@ export default class MainRenderer {
 
     const device = this.#device;
     const viewport = this.#viewport;
-    const gltfManager = this.#gltfManager;
+    const resourceManager = this.#resourceManager;
     const sampleCount = this.#options.multisampling;
 
     const multisample = sampleCount > 1;
 
     const txScene = this.#getOrCreateSceneTexture();
     const txDepth = this.#getOrCreateDepthTexture();
-    const txResolve = this.#getOrCreateResolveTexture(multisample);
+    const txResolve =
+      this.#getOrCreateResolveTextureIfMultisamplingEnabled(multisample);
     const txCanvas = viewport.getContext().getCurrentTexture();
 
     // const start = performance.now();
@@ -91,8 +98,14 @@ export default class MainRenderer {
     //   // console.log('done', performance.now() - start);
     // });
 
-    const encoder = device.createCommandEncoder();
+    const encoder = device.createCommandEncoder({
+      label: 'main render encoder',
+    });
+
+    this.#rShadow.render(device, encoder, em, resourceManager);
+
     const pass = encoder.beginRenderPass({
+      label: 'main render pass',
       colorAttachments: [
         {
           view: txScene.createView(),
@@ -118,11 +131,12 @@ export default class MainRenderer {
       context.txDepth = txDepth;
       context.sampleCount = sampleCount;
       context.em = em;
-      context.gltfManager = gltfManager;
+      context.resourceManager = resourceManager;
     }
 
     const context = this.#context as RenderContext;
 
+    this.#rSkybox.render(context);
     this.#rMesh.render(context);
     this.#rPostProcess.render(pass);
 
@@ -179,7 +193,7 @@ export default class MainRenderer {
     return this.#txDepth;
   }
 
-  #getOrCreateResolveTexture(multisample: boolean) {
+  #getOrCreateResolveTextureIfMultisamplingEnabled(multisample: boolean) {
     if (!multisample) return undefined;
 
     if (!this.#txResolve) {

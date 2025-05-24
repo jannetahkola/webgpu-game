@@ -42,7 +42,6 @@ class Input<T extends string> {
   readonly #listeners = {
     onpointerlockchange: (_e: Event) => {
       const document = this.#window.document;
-      // todo how to get this shit?
       this.#pointer.isLocked = document.pointerLockElement === this.#canvas;
       if (this.#pointer.isLocked) {
         this.enableInput(document);

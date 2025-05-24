@@ -3,19 +3,23 @@ import MainRenderer from './mainRenderer.ts';
 import type { Viewport } from '../../viewport/viewport.ts';
 import RendererFactory from './rendererFactory.ts';
 import PostProcessRenderer from './postprocessRenderer.ts';
-import type { GltfManager } from '../../resources/gltf.ts';
 import { EntityManager } from '../../ecs/entities/entityManager.ts';
 import MeshRenderer from './meshRenderer.ts';
+import ResourceManager from '../../resources/resourceManager.ts';
+import ShadowRenderer from './shadowRenderer.ts';
+import SkyboxRenderer from './skyboxRenderer.ts';
 
 describe('MainRenderer', () => {
   let meshRendererStub: MeshRenderer;
   let postProcessRendererStub: PostProcessRenderer;
+  let shadowRendererStub: ShadowRenderer;
+  let skyboxRendererStub: SkyboxRenderer;
 
   let viewport: Viewport;
   let rendererFactory: RendererFactory;
-  let gltfManager: GltfManager;
 
   let em: EntityManager;
+  let resourceManager: ResourceManager;
 
   beforeEach(() => {
     viewport = {
@@ -39,6 +43,14 @@ describe('MainRenderer', () => {
       onTexturesDestroyed: vi.fn(),
     };
 
+    shadowRendererStub = {
+      render: vi.fn(),
+    } as unknown as ShadowRenderer;
+
+    skyboxRendererStub = {
+      render: vi.fn(),
+    } as unknown as SkyboxRenderer;
+
     rendererFactory = {
       create: vi.fn(
         <T>(Ctor: new (...args: unknown[]) => T, ..._args: unknown[]): T => {
@@ -48,19 +60,25 @@ describe('MainRenderer', () => {
           if (Ctor === PostProcessRenderer) {
             return postProcessRendererStub as T;
           }
+          if (Ctor === ShadowRenderer) {
+            return shadowRendererStub as T;
+          }
+          if (Ctor === SkyboxRenderer) {
+            return skyboxRendererStub as T;
+          }
           throw new Error('Unknown renderer: ' + Ctor.name);
         }
       ),
     };
 
-    gltfManager = {
-      get: vi.fn(),
-      getMesh: vi.fn(),
-      getMaterial: vi.fn(),
-      loadGltf: vi.fn(),
-    } as unknown as GltfManager;
-
     em = new EntityManager();
+
+    resourceManager = {
+      getModel: vi.fn(),
+      getModelMesh: vi.fn(),
+      getModelMaterial: vi.fn(),
+      getCubeMapTexture: vi.fn(),
+    } as unknown as ResourceManager;
   });
 
   it('creates textures and submits frame', () => {
@@ -69,12 +87,12 @@ describe('MainRenderer', () => {
       device,
       viewport,
       rendererFactory,
-      gltfManager,
+      resourceManager,
     });
 
     renderer.render(em);
 
-    expect(device.createTexture).toHaveBeenCalledTimes(2);
+    expect(device.createTexture).toHaveBeenCalledTimes(2); // scene, depth
     expect(device.createCommandEncoder).toHaveBeenCalledOnce();
     expect(meshRendererStub.render).toHaveBeenCalledOnce();
     expect(postProcessRendererStub.render).toHaveBeenCalledOnce();
@@ -87,13 +105,13 @@ describe('MainRenderer', () => {
       device,
       viewport,
       rendererFactory,
-      gltfManager,
+      resourceManager,
       options: { multisampling: 4 },
     });
 
     renderer.render(em);
 
-    expect(device.createTexture).toHaveBeenCalledTimes(3);
+    expect(device.createTexture).toHaveBeenCalledTimes(3); // scene, depth, resolve
     expect(device.createCommandEncoder).toHaveBeenCalledOnce();
     expect(meshRendererStub.render).toHaveBeenCalledOnce();
     expect(postProcessRendererStub.render).toHaveBeenCalledOnce();
@@ -106,7 +124,7 @@ describe('MainRenderer', () => {
       device,
       viewport,
       rendererFactory,
-      gltfManager,
+      resourceManager,
     });
 
     renderer.render(em);
@@ -114,7 +132,7 @@ describe('MainRenderer', () => {
     renderer.render(em);
     renderer.render(em);
 
-    expect(device.createTexture).toHaveBeenCalledTimes(4);
+    expect(device.createTexture).toHaveBeenCalledTimes(4); // 2x scene, 2x depth
     expect(device.createCommandEncoder).toHaveBeenCalledTimes(3);
     expect(meshRendererStub.render).toHaveBeenCalledTimes(3);
     expect(postProcessRendererStub.render).toHaveBeenCalledTimes(3);
@@ -132,7 +150,7 @@ describe('MainRenderer', () => {
       device,
       viewport,
       rendererFactory,
-      gltfManager,
+      resourceManager,
     });
 
     renderer.render(em);
@@ -140,6 +158,8 @@ describe('MainRenderer', () => {
     renderer.render(em);
     renderer.render(em);
 
+    // changes from disabled to enabled -> resolve texture is created
+    // -> 2x scene, 2x depth, 1x resolve
     expect(device.createTexture).toHaveBeenCalledTimes(5);
     expect(device.createCommandEncoder).toHaveBeenCalledTimes(3);
     expect(meshRendererStub.render).toHaveBeenCalledTimes(3);
@@ -158,7 +178,7 @@ describe('MainRenderer', () => {
       device,
       viewport,
       rendererFactory,
-      gltfManager,
+      resourceManager,
     });
 
     renderer.render(em);
@@ -166,7 +186,7 @@ describe('MainRenderer', () => {
     renderer.render(em);
     renderer.render(em);
 
-    expect(device.createTexture).toHaveBeenCalledTimes(2);
+    expect(device.createTexture).toHaveBeenCalledTimes(2); // scene, depth
     expect(device.createCommandEncoder).toHaveBeenCalledTimes(3);
     expect(meshRendererStub.render).toHaveBeenCalledTimes(3);
     expect(postProcessRendererStub.render).toHaveBeenCalledTimes(3);

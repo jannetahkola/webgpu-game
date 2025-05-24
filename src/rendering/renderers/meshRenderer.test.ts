@@ -11,8 +11,9 @@ import FirstPersonCamera from '../../cameras/firstPersonCamera.ts';
 import MeshComponent from '../../ecs/components/meshComponent.ts';
 import MaterialComponent from '../../ecs/components/materialComponent.ts';
 import TransformComponent from '../../ecs/components/transformComponent.ts';
-import type { GltfManager } from '../../resources/gltf.ts';
 import LightingComponent from '../../ecs/components/lightingComponent.ts';
+import ShadowComponent from '../../ecs/components/shadowComponent.ts';
+import type ResourceManager from '../../resources/resourceManager.ts';
 
 describe('MeshRenderer', () => {
   it('creates resources and draws', () => {
@@ -22,9 +23,14 @@ describe('MeshRenderer', () => {
       cameraType: 'FirstPersonCamera',
       camera: new FirstPersonCamera(),
     });
-    const lightingComponent = new LightingComponent();
     em.newSingletonEntity(Player).addComponent(cameraComponent);
-    em.newSingletonEntity(Lighting).addComponent(lightingComponent);
+
+    const lightingComponent = new LightingComponent();
+    const shadowComponent = new ShadowComponent({ shadowMapSize: 1024 });
+    em.newSingletonEntity(Lighting).addComponent(
+      lightingComponent,
+      shadowComponent
+    );
 
     const transformComponent = new TransformComponent();
     em.newEntity().addComponent(
@@ -43,32 +49,43 @@ describe('MeshRenderer', () => {
       {} as GPUBuffer
     );
     vi.spyOn(lightingComponent, 'getBuffer').mockReturnValue({} as GPUBuffer);
+    vi.spyOn(shadowComponent, 'getViewProjectionBuffer').mockReturnValue(
+      {} as GPUBuffer
+    );
+    vi.spyOn(shadowComponent, 'getBuffer').mockReturnValue({} as GPUBuffer);
+    vi.spyOn(shadowComponent, 'getDepthTexture').mockReturnValue({
+      createView: vi.fn(),
+    } as GPUTexture);
+    vi.spyOn(shadowComponent, 'getDepthTextureSampler').mockReturnValue(
+      {} as GPUSampler
+    );
 
-    const gltfManager = {
-      getMesh: vi.fn(() => ({
+    const resourceManager = {
+      getModelMesh: vi.fn(() => ({
         vertexBuffer: {},
       })),
-      getMaterial: vi.fn(() => ({
+      getModelMaterial: vi.fn(() => ({
         buffer: vi.fn(),
         texture: { createView: vi.fn() },
       })),
-    } as unknown as GltfManager;
+    } as unknown as ResourceManager;
     const { device, texture, pass } = WebGPUStubs.createDevice();
-    const context = {
+    const context: RenderContext = {
       device,
       pass,
       txScene: texture,
       txDepth: texture,
       em,
-      gltfManager,
-    } as unknown as RenderContext;
+      resourceManager,
+      sampleCount: 1,
+    };
     const renderer = new MeshRenderer();
 
     renderer.render(context);
     renderer.render(context);
 
-    expect(device.createSampler).toHaveBeenCalledOnce();
-    expect(device.createBindGroup).toHaveBeenCalledTimes(6); // 2 renders x mesh, material, lighting
+    expect(device.createSampler).toHaveBeenCalledTimes(1); // material sampler
+    expect(device.createBindGroup).toHaveBeenCalledTimes(8); // 2x mesh, 2x material, 2x lighting, 2x shadow
     expect(pass.drawIndexed).toHaveBeenCalledTimes(2); // 2 renders
 
     // todo maybe validate arguments passed to GPU resources

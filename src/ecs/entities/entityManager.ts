@@ -22,6 +22,10 @@ abstract class Lighting extends SingletonEntity {
   readonly __tag = 'Lighting';
 }
 
+abstract class Skybox extends SingletonEntity {
+  readonly __tag = 'Skybox';
+}
+
 class EntityQuery<C extends object> {
   readonly #componentClasses: Class<C>[];
 
@@ -154,12 +158,21 @@ class EntityManager {
       if (obj.entity > next) next = obj.entity;
 
       let ctor: SingletonConstructor;
-      if (obj.tag === 'Player') ctor = Player;
-      else if (obj.tag === 'Lighting') ctor = Lighting;
-      else
-        throw new Error(
-          'Unknown singleton ' + obj.tag + ' in entity ' + obj.entity
-        );
+      switch (obj.tag) {
+        case 'Player':
+          ctor = Player;
+          break;
+        case 'Lighting':
+          ctor = Lighting;
+          break;
+        case 'Skybox':
+          ctor = Skybox;
+          break;
+        default:
+          throw new Error(
+            'Unknown singleton ' + obj.tag + ' in entity ' + obj.entity
+          );
+      }
       this.#assertNewSingleton(ctor);
       this.#singletons.set(ctor, obj.entity);
     }
@@ -189,4 +202,4 @@ class EntityManager {
 }
 
 export type { EntityManagerSnapshot, Constructor }; // todo do not export Constructor, or rename to ComponentConstructor
-export { EntityQuery, EntityManager, Player, Lighting };
+export { EntityQuery, EntityManager, Player, Lighting, Skybox };

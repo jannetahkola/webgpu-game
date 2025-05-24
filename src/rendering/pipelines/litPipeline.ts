@@ -27,7 +27,6 @@ export default function litPipeline(
               buffer: { type: 'uniform' },
             },
             {
-              // todo combine these or not?
               // model matrix
               binding: 1,
               visibility: GPUShaderStage.VERTEX,
@@ -73,12 +72,39 @@ export default function litPipeline(
             },
           ],
         }),
+        device.createBindGroupLayout({
+          entries: [
+            {
+              // shadow properties
+              binding: 0,
+              visibility: GPUShaderStage.FRAGMENT,
+              buffer: { type: 'uniform' },
+            },
+            {
+              // shadow depth texture
+              binding: 1,
+              visibility: GPUShaderStage.FRAGMENT,
+              texture: { sampleType: 'depth' },
+            },
+            {
+              // shadow sampler
+              binding: 2,
+              visibility: GPUShaderStage.FRAGMENT,
+              sampler: { type: 'comparison' },
+            },
+            {
+              // light view projection matrix
+              binding: 3,
+              visibility: GPUShaderStage.VERTEX,
+              buffer: { type: 'uniform' },
+            },
+          ],
+        }),
       ],
     }),
     vertex: {
       module,
       buffers: [
-        // todo interleaved buffers?
         {
           arrayStride: 12,
           attributes: [

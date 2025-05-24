@@ -1,7 +1,6 @@
 import type { Prefab } from './prefabs/prefab.ts';
 import Scene from './scene.ts';
 import ModelComponent from '../ecs/components/modelComponent.ts';
-import type { GltfManager } from '../resources/gltf.ts';
 import ChildComponent from '../ecs/components/childComponent.ts';
 import TransformComponent from '../ecs/components/transformComponent.ts';
 import MeshComponent from '../ecs/components/meshComponent.ts';
@@ -15,12 +14,15 @@ import type { GameInput } from '../input/actions.ts';
 import CameraComponent from '../ecs/components/cameraComponent.ts';
 import FirstPersonCamera from '../cameras/firstPersonCamera.ts';
 import LightingSystem from '../ecs/systems/lightingSystem.ts';
+import ShadowSystem from '../ecs/systems/shadowSystem.ts';
+import { CubeMapComponent } from '../ecs/components/cubeMapComponent.ts';
+import type ResourceManager from '../resources/resourceManager.ts';
 
 export default class PrefabSceneLoader {
-  readonly #gltfManager: GltfManager;
+  readonly #resourceManager: ResourceManager;
 
-  constructor(gltfManager: GltfManager) {
-    this.#gltfManager = gltfManager;
+  constructor(resourceManager: ResourceManager) {
+    this.#resourceManager = resourceManager;
   }
 
   async load(device: GPUDevice, prefab: Prefab, input: GameInput) {
@@ -40,36 +42,47 @@ export default class PrefabSceneLoader {
       new PlayerControllerSystem(),
       new TransformSystem(device),
       new CameraSystem(device),
-      new LightingSystem(device)
+      new LightingSystem(device),
+      new ShadowSystem(device)
     );
 
     return scene;
   }
 
   async #initResources(scene: Scene, device: GPUDevice) {
-    const modelComponents = scene.em.getEntitiesWith([ModelComponent]);
-    const refs = modelComponents.map(
-      (c) => scene.em.getComponent(c, ModelComponent).ref
-    );
-    await this.#gltfManager.loadGltf(device, refs);
+    {
+      const modelComponents = scene.em.getEntitiesWith([ModelComponent]);
+      const refs = modelComponents.map(
+        (c) => scene.em.getComponent(c, ModelComponent).ref
+      );
+      await this.#resourceManager.loadModels(device, refs);
+    }
+    {
+      const cubeMapComponents = scene.em.getEntitiesWith([CubeMapComponent]);
+      const refs = cubeMapComponents.map(
+        (c) => scene.em.getComponent(c, CubeMapComponent).ref
+      );
+      await this.#resourceManager.loadCubeMaps(device, refs);
+    }
   }
 
   #initModels(scene: Scene) {
     for (const e of scene.em.getEntitiesWith([ModelComponent])) {
       const modelComponent = scene.em.getComponent(e, ModelComponent);
       scene.em.addComponent(e, new ChildComponent());
-
-      this.#gltfManager.get(modelComponent.ref).meshes.forEach((mesh) => {
-        const { entity: childEntity } = scene.em
-          .newEntity()
-          .addComponent(
-            new MeshComponent(mesh.ref),
-            new MaterialComponent(mesh.materialRef),
-            new TransformComponent(),
-            new ParentComponent({ parent: e })
-          );
-        scene.em.getComponent(e, ChildComponent).children.push(childEntity);
-      });
+      this.#resourceManager
+        .getModel(modelComponent.ref)
+        .meshes.forEach((mesh) => {
+          const { entity: childEntity } = scene.em
+            .newEntity()
+            .addComponent(
+              new MeshComponent(mesh.ref),
+              new MaterialComponent(mesh.materialRef),
+              new TransformComponent(),
+              new ParentComponent({ parent: e })
+            );
+          scene.em.getComponent(e, ChildComponent).children.push(childEntity);
+        });
     }
   }
 
