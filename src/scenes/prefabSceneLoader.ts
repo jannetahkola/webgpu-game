@@ -17,6 +17,7 @@ import LightingSystem from '../ecs/systems/lightingSystem.ts';
 import ShadowSystem from '../ecs/systems/shadowSystem.ts';
 import { CubeMapComponent } from '../ecs/components/cubeMapComponent.ts';
 import type ResourceManager from '../resources/resourceManager.ts';
+import SkyboxSystem from '../ecs/systems/skyboxSystem.ts';
 
 export default class PrefabSceneLoader {
   readonly #resourceManager: ResourceManager;
@@ -42,6 +43,7 @@ export default class PrefabSceneLoader {
       new PlayerControllerSystem(),
       new TransformSystem(device),
       new CameraSystem(device),
+      new SkyboxSystem(device),
       new LightingSystem(device),
       new ShadowSystem(device)
     );

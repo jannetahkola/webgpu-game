@@ -5,6 +5,8 @@ export default class ShadowComponent {
 
   bufferArray = new Float32Array(1);
   buffer?: GPUBuffer;
+  viewMat = mat4.identity();
+  projMat = mat4.identity();
   viewProjMat = mat4.identity();
   viewProjBuffer?: GPUBuffer;
   depthTexture?: GPUTexture;

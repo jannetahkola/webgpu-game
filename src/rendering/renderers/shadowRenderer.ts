@@ -16,7 +16,7 @@ export default class ShadowRenderer {
     device: GPUDevice,
     encoder: GPUCommandEncoder,
     em: EntityManager,
-    resourceManager: ResourceManager,
+    resourceManager: ResourceManager
   ) {
     const shadow = em.getComponent(
       em.getSingletonEntity(Lighting),

@@ -144,6 +144,11 @@ const mainScenePrefab = {
       },
       {
         entity: 7,
+        type: 'SkyboxComponent',
+        data: {},
+      },
+      {
+        entity: 7,
         type: 'CubeMapComponent',
         data: {
           ref: './assets/cubemaps/skybox',

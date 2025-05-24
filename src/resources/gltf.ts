@@ -152,7 +152,9 @@ class GltfManager {
                 new Uint32Array(indexBuffer.getMappedRange()).set(indexArray);
                 indexFormat = 'uint32';
               } else {
-                throw new Error('Unsupported index type: ' + indexArray.constructor.name);
+                throw new Error(
+                  'Unsupported index type: ' + indexArray.constructor.name
+                );
               }
               indexBuffer.unmap();
 

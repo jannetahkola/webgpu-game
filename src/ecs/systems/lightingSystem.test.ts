@@ -36,6 +36,9 @@ describe('LightingSystem', () => {
       lightingComponent.target
     );
 
+    expect(device.createBuffer).toHaveBeenCalledOnce();
+    expect(device.queue.writeBuffer).toHaveBeenCalledTimes(2); // dirty twice
+
     expect(lightingComponent.dirty).toBe(false);
     expect(lightingComponent.direction).toBeFloat32ArrayCloseTo(dir);
     expect(lightingComponent.bufferArray[0]).toBeCloseTo(dir[0], 4);
@@ -53,7 +56,5 @@ describe('LightingSystem', () => {
       lightingComponent.ambient,
       4
     );
-    expect(device.createBuffer).toHaveBeenCalledTimes(1);
-    expect(device.queue.writeBuffer).toHaveBeenCalledTimes(2); // dirty twice
   });
 });

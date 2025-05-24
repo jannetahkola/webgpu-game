@@ -21,10 +21,9 @@ export default class ShadowSystem implements System {
     const transform = em.getComponent(light, TransformComponent).transform;
 
     const s = 10;
-    const viewProjMat = shadow.viewProjMat;
-    const view = mat4.lookAt(transform.position, lighting.target, [0, 1, 0]); // todo extract world up
-    const proj = mat4.ortho(-s, s, -s, s, 0.1, 100);
-    mat4.multiply(proj, view, viewProjMat);
+    mat4.lookAt(transform.position, lighting.target, [0, 1, 0], shadow.viewMat); // todo extract world up
+    mat4.ortho(-s, s, -s, s, 0.1, 100, shadow.projMat);
+    mat4.multiply(shadow.projMat, shadow.viewMat, shadow.viewProjMat);
 
     shadow.bufferArray[0] = shadow.shadowMapSize;
 
@@ -36,14 +35,14 @@ export default class ShadowSystem implements System {
     this.#device.queue.writeBuffer(shadow.buffer, 0, shadow.bufferArray.buffer);
 
     shadow.viewProjBuffer ??= this.#device.createBuffer({
-      size: viewProjMat.byteLength,
+      size: shadow.viewProjMat.byteLength,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
     this.#device.queue.writeBuffer(
       shadow.viewProjBuffer,
       0,
-      viewProjMat.buffer
+      shadow.viewProjMat.buffer
     );
 
     shadow.depthTexture ??= this.#device.createTexture({
