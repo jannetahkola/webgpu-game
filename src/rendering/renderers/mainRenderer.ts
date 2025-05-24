@@ -7,6 +7,8 @@ import ShadowRenderer from './shadowRenderer.ts';
 import SkyboxRenderer from './skyboxRenderer.ts';
 import type ResourceManager from '../../resources/resourceManager.ts';
 import type { EntityManager } from '../../ecs/entities/entityManager.ts';
+import MeshWireframeRenderer from './meshWireframeRenderer.ts';
+import ColliderWireframeRenderer from './colliderWireframeRenderer.ts';
 
 type MainRendererOptions = {
   clearValue: number[];
@@ -23,6 +25,8 @@ export default class MainRenderer {
   readonly #rShadow;
   readonly #rSkybox;
   readonly #rMesh;
+  readonly #rMeshWireframe;
+  readonly #rColliderWireframe;
   readonly #rPostProcess;
 
   readonly #context: Partial<MutableRenderContext> = {};
@@ -60,6 +64,10 @@ export default class MainRenderer {
     this.#rShadow = this.#rendererFactory.create(ShadowRenderer);
     this.#rSkybox = this.#rendererFactory.create(SkyboxRenderer);
     this.#rMesh = this.#rendererFactory.create(MeshRenderer);
+    this.#rMeshWireframe = this.#rendererFactory.create(MeshWireframeRenderer);
+    this.#rColliderWireframe = this.#rendererFactory.create(
+      ColliderWireframeRenderer
+    );
     this.#rPostProcess = this.#rendererFactory.create(PostProcessRenderer);
   }
 
@@ -138,6 +146,8 @@ export default class MainRenderer {
 
     this.#rSkybox.render(context);
     this.#rMesh.render(context);
+    this.#rMeshWireframe.render(context);
+    this.#rColliderWireframe.render(context);
     this.#rPostProcess.render(pass);
 
     pass.end();

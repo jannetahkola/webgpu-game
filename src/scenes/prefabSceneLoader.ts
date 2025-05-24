@@ -18,6 +18,9 @@ import ShadowSystem from '../ecs/systems/shadowSystem.ts';
 import { CubeMapComponent } from '../ecs/components/cubeMapComponent.ts';
 import type ResourceManager from '../resources/resourceManager.ts';
 import SkyboxSystem from '../ecs/systems/skyboxSystem.ts';
+import ColliderWireframeSystem from '../ecs/systems/colliderWireframeSystem.ts';
+import DiagnosticsResource from '../ecs/resources/diagnosticsResource.ts';
+import MeshWireframeSystem from '../ecs/systems/meshWireframeSystem.ts';
 
 export default class PrefabSceneLoader {
   readonly #resourceManager: ResourceManager;
@@ -32,9 +35,9 @@ export default class PrefabSceneLoader {
     const scene = new Scene(prefab.name);
 
     scene.em.deserialize(prefab.em);
+    scene.em.newResource(new DiagnosticsResource()); // todo proper typing for ecs resources
 
-    await this.#initResources(scene, device);
-
+    await this.#initResourceAssets(scene, device);
     this.#initModels(scene);
     this.#initCameras(scene);
 
@@ -45,13 +48,15 @@ export default class PrefabSceneLoader {
       new CameraSystem(device),
       new SkyboxSystem(device),
       new LightingSystem(device),
-      new ShadowSystem(device)
+      new ShadowSystem(device),
+      new MeshWireframeSystem(),
+      new ColliderWireframeSystem(device)
     );
 
     return scene;
   }
 
-  async #initResources(scene: Scene, device: GPUDevice) {
+  async #initResourceAssets(scene: Scene, device: GPUDevice) {
     {
       const modelComponents = scene.em.getEntitiesWith([ModelComponent]);
       const refs = modelComponents.map(

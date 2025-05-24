@@ -26,6 +26,9 @@ type Mesh = {
   indexBuffer: GPUBuffer;
   indexCount: number;
   indexFormat: GPUIndexFormat;
+  lineIndexArray: Uint16Array | Uint32Array;
+  lineIndexBuffer: GPUBuffer;
+  lineIndexCount: number;
   uvArray: Float32Array;
   uvBuffer: GPUBuffer;
   normalArray: Float32Array;
@@ -157,6 +160,26 @@ class GltfManager {
               }
               indexBuffer.unmap();
 
+              // todo similar to collider wireframes, should probably be done in the wireframe system
+              const lineIndexArray = this.#generateLineIndices(indexArray);
+              const lineIndexCount = lineIndexArray.length;
+              const lineIndexBuffer = device.createBuffer({
+                label: 'mesh line index buffer',
+                size: lineIndexArray.byteLength,
+                usage: GPUBufferUsage.INDEX,
+                mappedAtCreation: true,
+              });
+              if (lineIndexArray instanceof Uint16Array) {
+                new Uint16Array(lineIndexBuffer.getMappedRange()).set(
+                  lineIndexArray
+                );
+              } else {
+                new Uint32Array(lineIndexBuffer.getMappedRange()).set(
+                  lineIndexArray
+                );
+              }
+              lineIndexBuffer.unmap();
+
               const ref = `${url}#${node.getName()}:${prim.getName()}`;
               const materialRef = `${url}#${material.getName()}`;
               if (!materials.has(materialRef)) {
@@ -192,6 +215,9 @@ class GltfManager {
                 indexBuffer,
                 indexCount,
                 indexFormat,
+                lineIndexArray,
+                lineIndexBuffer,
+                lineIndexCount,
                 uvArray,
                 uvBuffer,
                 normalArray,
@@ -274,6 +300,37 @@ class GltfManager {
 
     this.#defaultTexture = tx;
     return this.#defaultTexture;
+  }
+
+  #generateLineIndices(
+    indices: Uint16Array | Uint32Array
+  ): Uint16Array | Uint32Array {
+    const edges = new Set<string>();
+    const lineIndices: number[] = [];
+
+    for (let i = 0; i < indices.length; i += 3) {
+      const tri = [indices[i], indices[i + 1], indices[i + 2]];
+
+      const pairs = [
+        [tri[0], tri[1]],
+        [tri[1], tri[2]],
+        [tri[2], tri[0]],
+      ];
+
+      for (const pair of pairs) {
+        const key = pair.toSorted((x, y) => x - y).join('-');
+        if (!edges.has(key)) {
+          edges.add(key);
+          lineIndices.push(pair[0], pair[1]);
+        }
+      }
+    }
+
+    if (indices instanceof Uint16Array) {
+      return new Uint16Array(lineIndices);
+    }
+
+    return new Uint32Array(lineIndices);
   }
 }
 

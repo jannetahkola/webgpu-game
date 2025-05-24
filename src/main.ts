@@ -9,6 +9,7 @@ import mainScenePrefab from './scenes/prefabs/mainScenePrefab.ts';
 import ComponentRegistry from './ecs/components/componentRegistry.ts';
 import ResourceManager from './resources/resourceManager.ts';
 import ResourceManagerFactory from './resources/resourceManagerFactory.ts';
+import DiagnosticsResource from './ecs/resources/diagnosticsResource.ts';
 
 async function main() {
   const canvas = window.document.createElement('canvas');
@@ -73,6 +74,14 @@ async function main() {
     },
     setMultisamplingSampleCount(count: number) {
       renderer.setMultisamplingSampleCount(count);
+    },
+    toggleMeshWireframes() {
+      const d = scene.em.getResource(DiagnosticsResource);
+      d.setMeshWireframesEnabled(!d.meshWireframesEnabled);
+    },
+    toggleColliderWireframes() {
+      const d = scene.em.getResource(DiagnosticsResource);
+      d.setColliderWireframesEnabled(!d.colliderWireframesEnabled);
     },
   });
 

@@ -1,5 +1,5 @@
 import type { Prefab } from './prefab.ts';
-import { quat, vec3 } from 'wgpu-matrix';
+import { mat3, quat, vec3 } from 'wgpu-matrix';
 
 const mainScenePrefab = {
   name: 'MainScene',
@@ -32,6 +32,18 @@ const mainScenePrefab = {
         },
       },
       {
+        entity: 0,
+        type: 'ColliderComponent',
+        data: {
+          collider: {
+            type: 'box',
+            size: [1, 1, 1],
+            center: [0, 0, 0],
+            orientation: mat3.identity(),
+          },
+        },
+      },
+      {
         entity: 2,
         type: 'ModelComponent',
         data: {
@@ -45,6 +57,18 @@ const mainScenePrefab = {
           transform: {
             position: [0.5, 0.4, -2],
             rotation: quat.fromAxisAngle(vec3.fromValues(0, 1, 0), Math.PI / 3),
+          },
+        },
+      },
+      {
+        entity: 2,
+        type: 'ColliderComponent',
+        data: {
+          collider: {
+            type: 'box',
+            size: [1, 1, 1],
+            center: [0, 0, 0],
+            orientation: mat3.identity(),
           },
         },
       },
@@ -65,6 +89,18 @@ const mainScenePrefab = {
               vec3.fromValues(0, 1, 0),
               Math.PI / 3.3
             ),
+          },
+        },
+      },
+      {
+        entity: 3,
+        type: 'ColliderComponent',
+        data: {
+          collider: {
+            type: 'box',
+            size: [1, 1, 1],
+            center: [0, 0, 0],
+            orientation: mat3.identity(),
           },
         },
       },

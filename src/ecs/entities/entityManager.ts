@@ -48,6 +48,7 @@ class EntityManager {
   readonly #entities: number[] = [];
   readonly #components: Map<object, Map<number, object>> = new Map();
   readonly #singletons: Map<object, number> = new Map();
+  readonly #resources: Map<object, object> = new Map();
   #next = 0;
 
   newEntity() {
@@ -88,6 +89,15 @@ class EntityManager {
     };
   }
 
+  newResource<T extends object>(resourceInstance: Instance<T>) {
+    const resourceClass = resourceInstance.constructor;
+    if (this.#resources.has(resourceClass)) {
+      throw new Error('Resource ' + resourceClass.name + ' already exists');
+    }
+    this.#resources.set(resourceClass, resourceInstance);
+    return resourceInstance;
+  }
+
   hasEntity(entity: number) {
     return this.#entities.includes(entity);
   }
@@ -100,6 +110,19 @@ class EntityManager {
     const map = this.#components.get(componentClass);
     if (!map) this.#components.set(componentClass, new Map());
     this.#components.get(componentClass)!.set(entity, componentInstance);
+  }
+
+  removeComponent<I extends object>(
+    entity: number,
+    componentConstructor: Constructor<I>
+  ) {
+    const map = this.#components.get(componentConstructor);
+    if (!map) return;
+    const component = map.get(entity)!;
+    if ('destroy' in component && typeof component.destroy === 'function') {
+      component.destroy(); // todo should come from an interface
+    }
+    map.delete(entity);
   }
 
   getComponent<I extends object, A extends unknown[]>(
@@ -140,6 +163,14 @@ class EntityManager {
     const entity = this.#singletons.get(singleton);
     if (entity == null) throw new Error('No singleton ' + singleton.name);
     return entity;
+  }
+
+  getResource<I extends object, A extends unknown[]>(
+    resourceConstructor: Constructor<I, A>
+  ) {
+    const resource = this.#resources.get(resourceConstructor);
+    if (!resource) throw new Error('No resource ' + resourceConstructor.name);
+    return resource as I;
   }
 
   deserialize(snapshot: EntityManagerSnapshot) {
