@@ -16,6 +16,7 @@ const orderedFaces = [
 ];
 
 class CubeMapManager {
+  // todo use a map or record in these managers - not both
   readonly #cubeMaps = new Map<string, GPUTextureView>();
 
   get(ref: string) {
@@ -25,15 +26,29 @@ class CubeMapManager {
   }
 
   async loadCubeMap(device: GPUDevice, refs: string[]) {
-    // todo optimize, if same cube map is loaded multiple times, only load once
     for (const ref of refs) {
+      if (this.#cubeMaps.has(ref)) continue;
+
       const promises = orderedFaces.map(async (face) => {
         const key = ref + face;
-        if (!urls[key])
+
+        if (!urls[key]) {
           throw new Error(`Cubemap ${ref} not found` + Object.keys(urls));
+        }
+
         return fetch((await urls[key]?.()) as string)
           .then((res) => res.blob())
-          .then((blob) => createImageBitmap(blob));
+          .then((blob) =>
+            createImageBitmap(
+              blob,
+              // flip y for z faces
+              face.includes('z.png')
+                ? {
+                    imageOrientation: 'flipY',
+                  }
+                : undefined
+            )
+          );
       });
 
       const faces = await Promise.all(promises);
