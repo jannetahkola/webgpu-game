@@ -16,29 +16,38 @@ export default class InputSystem implements System {
       PlayerControllerComponent
     );
 
+    if (this.#input.isDoublePressed(Actions.ascend)) {
+      controller.flyModeEnabled = !controller.flyModeEnabled;
+      console.log('flyModeEnabled=', controller.flyModeEnabled);
+      // todo continue
+    }
+
     controller.lookDelta[0] = this.#input.getPointerDeltaX();
     controller.lookDelta[1] = this.#input.getPointerDeltaY();
 
     const input = this.#input;
 
     controller.moveDir.fill(0);
-    if (input.isActive(Actions.moveForward)) {
+    if (input.isPressed(Actions.moveForward)) {
       controller.moveDir[2] += 1;
     }
-    if (input.isActive(Actions.moveBackward)) {
+    if (input.isPressed(Actions.moveBackward)) {
       controller.moveDir[2] += -1;
     }
-    if (input.isActive(Actions.moveLeft)) {
+    if (input.isPressed(Actions.moveLeft)) {
       controller.moveDir[0] += -1;
     }
-    if (input.isActive(Actions.moveRight)) {
+    if (input.isPressed(Actions.moveRight)) {
       controller.moveDir[0] += 1;
     }
-    if (input.isActive(Actions.ascend)) {
-      controller.moveDir[1] += 1;
-    }
-    if (input.isActive(Actions.descend)) {
-      controller.moveDir[1] += -1;
+
+    if (controller.flyModeEnabled) {
+      if (input.isPressed(Actions.ascend)) {
+        controller.moveDir[1] += 1;
+      }
+      if (input.isPressed(Actions.descend)) {
+        controller.moveDir[1] += -1;
+      }
     }
   }
 }

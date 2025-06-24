@@ -5,10 +5,11 @@ import PlayerControllerComponent from '../components/playerControllerComponent.t
 
 describe('InputSystem', () => {
   it('updates controller', () => {
-    const input = {
+    const input: GameInput = {
       getPointerDeltaX: vi.fn(),
       getPointerDeltaY: vi.fn(),
-      isActive: vi.fn(),
+      isPressed: vi.fn(),
+      isDoublePressed: vi.fn(),
     } as unknown as GameInput;
     const system = new InputSystem(input);
     const em = new EntityManager();
@@ -17,9 +18,10 @@ describe('InputSystem', () => {
 
     vi.spyOn(input, 'getPointerDeltaX').mockReturnValue(1);
     vi.spyOn(input, 'getPointerDeltaY').mockReturnValue(2);
-    vi.spyOn(input, 'isActive').mockImplementation(
+    vi.spyOn(input, 'isPressed').mockImplementation(
       (action: Action) => action === Actions.moveForward
     );
+    vi.spyOn(input, 'isDoublePressed').mockReturnValue(false);
 
     system.update(0, em);
 
@@ -33,7 +35,7 @@ describe('InputSystem', () => {
 
     expect(controller.lookDelta).toEqual(new Float32Array([3, 4]));
 
-    vi.spyOn(input, 'isActive').mockImplementation(
+    vi.spyOn(input, 'isPressed').mockImplementation(
       (action: Action) => action === Actions.moveBackward
     );
 
@@ -41,7 +43,7 @@ describe('InputSystem', () => {
 
     expect(controller.moveDir).toEqual(new Float32Array([0, 0, -1]));
 
-    vi.spyOn(input, 'isActive').mockImplementation(
+    vi.spyOn(input, 'isPressed').mockImplementation(
       (action: Action) => action === Actions.moveLeft
     );
 
@@ -49,7 +51,7 @@ describe('InputSystem', () => {
 
     expect(controller.moveDir).toEqual(new Float32Array([-1, 0, 0]));
 
-    vi.spyOn(input, 'isActive').mockImplementation(
+    vi.spyOn(input, 'isPressed').mockImplementation(
       (action: Action) => action === Actions.moveRight
     );
 

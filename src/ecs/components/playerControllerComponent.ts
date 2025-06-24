@@ -7,4 +7,5 @@ export default class PlayerControllerComponent {
   lookDelta = vec2.create();
   yaw = 0;
   pitch = 0;
+  flyModeEnabled = false;
 }

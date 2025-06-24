@@ -6,11 +6,18 @@ type PointerState = {
   delta: Vec2;
 };
 
+type DoublePressState = {
+  flagsNext: Record<string, boolean>;
+  flags: Record<string, boolean>;
+};
+
 type KeyState = {
   pressed: boolean;
   // Timestamp when the key was last pressed. Updated
   // on new keydown events where `e.repeat = false`.
   lastPressed: number;
+  lastReleased: number;
+  pressCount: number;
 };
 
 function defaultPointerState(): PointerState {
@@ -18,6 +25,13 @@ function defaultPointerState(): PointerState {
     isLocked: false,
     deltaNext: vec2.create(),
     delta: vec2.create(),
+  };
+}
+
+function defaultDoublePressState(): DoublePressState {
+  return {
+    flagsNext: {},
+    flags: {},
   };
 }
 
@@ -33,12 +47,17 @@ const suppressedKeys = [
   // 'Escape' unlocks the pointer, but this cannot be suppressed
 ] as readonly string[];
 
+// Maximum time between two key presses for the second one to be
+// considered a double press.
+const doublePressThresholdMs = 250;
+
 class Input<T extends string> {
   readonly #canvas: HTMLCanvasElement;
   readonly #window: Window;
-  readonly #pointer: PointerState = defaultPointerState();
-  readonly #keys: Map<string, KeyState> = new Map(); // semi-dynamic -> map
+  readonly #pointer = defaultPointerState();
+  readonly #keys = new Map<string, KeyState>(); // semi-dynamic -> map // todo check perf
   readonly #bindings: Record<T, string>; // keys are fixed -> record
+  readonly #doublePresses = defaultDoublePressState();
   readonly #listeners = {
     onpointerlockchange: (_e: Event) => {
       const document = this.#window.document;
@@ -64,13 +83,22 @@ class Input<T extends string> {
       state.pressed = true;
 
       if (!e.repeat) {
-        state.lastPressed = performance.now();
+        const now = performance.now();
+
+        // detect double presses
+        const lastPressedDelta = now - state.lastPressed;
+        const isDouble =
+          state.pressCount === 1 && lastPressedDelta <= doublePressThresholdMs;
+        this.#doublePresses.flagsNext[e.code] = isDouble;
+        state.pressCount = isDouble ? 0 : 1;
+
+        state.lastPressed = now;
       }
     },
     onkeyup: (e: KeyboardEvent) => {
       const state = this.#keys.get(e.code) ?? this.#defaultKeyState(e.code);
       state.pressed = false;
-      state.lastPressed = 0;
+      state.lastReleased = performance.now();
     },
   };
 
@@ -99,13 +127,33 @@ class Input<T extends string> {
   // Returns `true` if the action is currently active. Prefer
   // using a constant from {@link Actions} instead of string
   // literals.
-  isActive(action: T) {
+  isPressed(action: T) {
     return this.#keys.get(this.#bindings[action])?.pressed ?? false;
+  }
+
+  isDoublePressed(action: T) {
+    const keyCode: string = this.#bindings[action];
+    return this.#doublePresses.flags[keyCode] ?? false;
+  }
+
+  // justPressed(action: T, threshold = 250) {
+  //   const state = this.#keys.get(this.#bindings[action]);
+  //   if (!state) return false;
+  //   return performance.now() - state.lastPressed <= threshold;
+  // }
+
+  getKeyState(action: T) {
+    return this.#keys.get(this.#bindings[action]);
   }
 
   update() {
     vec2.clone(this.#pointer.deltaNext, this.#pointer.delta);
     vec2.zero(this.#pointer.deltaNext);
+
+    for (const key in this.#doublePresses.flagsNext) {
+      this.#doublePresses.flags[key] = this.#doublePresses.flagsNext[key];
+      this.#doublePresses.flagsNext[key] = false;
+    }
   }
 
   observe() {
@@ -135,9 +183,11 @@ class Input<T extends string> {
   destroy() {}
 
   #defaultKeyState(code: string): KeyState {
-    const state = {
+    const state: KeyState = {
       pressed: true,
-      lastPressed: performance.now(),
+      lastPressed: -Infinity,
+      lastReleased: -Infinity,
+      pressCount: 0,
     };
     this.#keys.set(code, state);
     return state;

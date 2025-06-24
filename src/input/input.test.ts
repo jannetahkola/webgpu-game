@@ -94,29 +94,48 @@ describe('Input', () => {
     expect(input.getPointerDeltaY()).toBe(0);
   });
 
-  it('updates key state on `keydown` and `keyup` events', () => {
+  it('updates press state on `keydown` and `keyup` events', () => {
     input.observe();
     simulatePointerLockChange(canvas);
 
-    expect(input.isActive(Actions.moveLeft)).toBe(false);
-    expect(input.isActive(Actions.moveBackward)).toBe(false);
+    expect(input.isPressed(Actions.moveLeft)).toBe(false);
+    expect(input.isPressed(Actions.moveBackward)).toBe(false);
 
     simulateKeyDown('KeyA');
     simulateKeyDown('KeyS');
 
-    expect(input.isActive(Actions.moveLeft)).toBe(true);
-    expect(input.isActive(Actions.moveBackward)).toBe(true);
-    expect(input.isActive(Actions.moveForward)).toBe(false);
-    expect(input.isActive(Actions.moveRight)).toBe(false);
+    expect(input.isPressed(Actions.moveLeft)).toBe(true);
+    expect(input.isPressed(Actions.moveBackward)).toBe(true);
+    expect(input.isPressed(Actions.moveForward)).toBe(false);
+    expect(input.isPressed(Actions.moveRight)).toBe(false);
 
     simulateKeyUp('KeyA');
     simulateKeyUp('KeyS');
     simulateKeyDown('KeyW');
     simulateKeyDown('KeyD');
 
-    expect(input.isActive(Actions.moveLeft)).toBe(false);
-    expect(input.isActive(Actions.moveBackward)).toBe(false);
-    expect(input.isActive(Actions.moveForward)).toBe(true);
-    expect(input.isActive(Actions.moveRight)).toBe(true);
+    expect(input.isPressed(Actions.moveLeft)).toBe(false);
+    expect(input.isPressed(Actions.moveBackward)).toBe(false);
+    expect(input.isPressed(Actions.moveForward)).toBe(true);
+    expect(input.isPressed(Actions.moveRight)).toBe(true);
+  });
+
+  it('updates double press state on `keydown` events', () => {
+    input.observe();
+    simulatePointerLockChange(canvas);
+
+    simulateKeyDown('KeyA');
+    input.update();
+
+    expect(input.isDoublePressed(Actions.moveLeft)).toBe(false);
+
+    simulateKeyDown('KeyA');
+    input.update();
+
+    expect(input.isDoublePressed(Actions.moveLeft)).toBe(true);
+
+    input.update(); // should clean up for next frame
+
+    expect(input.isDoublePressed(Actions.moveLeft)).toBe(false);
   });
 });
