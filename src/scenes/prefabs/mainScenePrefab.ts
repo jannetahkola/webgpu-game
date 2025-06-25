@@ -166,6 +166,23 @@ const mainScenePrefab = {
           },
         },
       },
+      {
+        entity: 1,
+        type: 'ColliderComponent',
+        data: {
+          collider: {
+            type: 'box',
+            size: [1, 1, 1],
+            center: [0, 0, 0],
+            orientation: mat3.identity(),
+          },
+        },
+      },
+      {
+        entity: 1,
+        type: 'RigidBodyComponent',
+        data: {}
+      },
       // todo could make default required components somewhere instead of having to define them here
       {
         entity: 4,

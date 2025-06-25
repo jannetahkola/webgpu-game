@@ -8,4 +8,5 @@ export default class PlayerControllerComponent {
   yaw = 0;
   pitch = 0;
   flyModeEnabled = false;
+  jumpRequested = false;
 }

@@ -24,6 +24,7 @@ import MeshWireframeSystem from '../ecs/systems/meshWireframeSystem.ts';
 import ColliderComponent from '../ecs/components/colliderComponent.ts';
 import type { MeshCollider } from '../physics/colliders.ts';
 import CssLog from '../logging/logging.ts';
+import PhysicsSystem from '../ecs/systems/physicsSystem.ts';
 
 export default class PrefabSceneLoader {
   readonly #resourceManager: ResourceManager;
@@ -48,6 +49,7 @@ export default class PrefabSceneLoader {
     scene.systems.push(
       new InputSystem(input),
       new PlayerControllerSystem(),
+      new PhysicsSystem(this.#resourceManager),
       new TransformSystem(device),
       new CameraSystem(device),
       new SkyboxSystem(device),

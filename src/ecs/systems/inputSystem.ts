@@ -48,6 +48,10 @@ export default class InputSystem implements System {
       if (input.isPressed(Actions.descend)) {
         controller.moveDir[1] += -1;
       }
+    } else {
+      if (input.isPressed(Actions.ascend)) {
+        controller.jumpRequested = true;
+      }
     }
   }
 }
