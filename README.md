@@ -15,6 +15,8 @@ More info:
 - [MDN](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)
 - [Wikipedia](https://en.wikipedia.org/wiki/WebGPU#:~:text=WebGPU%20is%20a%20JavaScript%2C%20C,JavaScript%20environment%20such%20as%20node)
 
+https://github.com/user-attachments/assets/8bb998a4-65b2-47f3-b9da-ac8b2ac9e23a
+
 # Browser Compatibility
 
 A fairly new browser version is required to run the app:
