@@ -1,14 +1,16 @@
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
-import vitest from '@vitest/eslint-plugin';
+import eslintPluginVitest from '@vitest/eslint-plugin';
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 
 export default tseslint.config(
-  eslint.configs.recommended,
-  tseslint.configs.recommended,
   {
+    extends: [
+      eslint.configs.recommended,
+      tseslint.configs.recommended,
+      eslintPluginPrettierRecommended,
+    ],
     ignores: ['dist/**'],
-  },
-  {
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -31,10 +33,11 @@ export default tseslint.config(
           varsIgnorePattern: '^_',
         },
       ],
+      'prettier/prettier': 'error',
     },
   },
   {
-    extends: [vitest.configs.recommended],
+    extends: [eslintPluginVitest.configs.recommended],
     files: ['**/*.test.ts', '**/*.test-d.ts'],
     rules: {
       'no-restricted-imports': [
@@ -43,7 +46,9 @@ export default tseslint.config(
           paths: [
             {
               name: 'vitest',
-              importNames: Object.keys(vitest.environments.env.globals),
+              importNames: Object.keys(
+                eslintPluginVitest.environments.env.globals
+              ),
               message: 'Use Vitest globals instead of importing',
             },
           ],

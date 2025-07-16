@@ -54,7 +54,6 @@ jobs:
           --arg content "$JSON" \
           '{files: {"coverage-badge.json": {content: $content}}}')"
       - run: npm run lint
-      - run: npm run prettier
       - name: Update CI Status Gist
         if: always()
         run: |
